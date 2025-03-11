@@ -43,59 +43,57 @@ export default function JobSlipPage({ initialData, nextPage }) {
   };
 
   // Apply filters to load data
-  const applyFilters = async () => {
-    try {
-      // 🔹 Step 1: Fetch the session first to get the JWT Token
-      const sessionRes = await fetch("/api/auth/session");
-      if (!sessionRes.ok) {
-        throw new Error("Failed to fetch session");
-      }
-      
-      const sessionData = await sessionRes.json();
-      
-      if (!sessionData.user || !sessionData.user.accessToken) {
-        console.error("❌ JWT Token is missing in session!");
-        alert("You are not authenticated. Please log in again.");
-        return;
-      }
   
-      const token = sessionData.user.accessToken; // Extract JWT Token
-      console.log("🔹 Using Token:", token);
-  
-      // 🔹 Step 2: Remove empty filters before sending request
-      const activeFilters = Object.fromEntries(
-        Object.entries(filters).filter(([_, value]) => value.trim() !== "")
-      );
-  
-      const query = new URLSearchParams(activeFilters).toString();
-      console.log("🔹 Sending Filter Request to:", `/api/job-slip?${query}`);
-  
-      // 🔹 Step 3: Send request with JWT token in headers
-      const res = await fetch(`/api/job-slip?${query}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`, // 🔥 Send JWT token
-        },
-      });
-  
-      if (!res.ok) {
-        const errorResponse = await res.json();
-        throw new Error(errorResponse.message || "Failed to fetch filtered data");
-      }
-  
-      const filteredResponse = await res.json();
-      console.log("🟢 Filtered Data Received:", filteredResponse);
-  
-      // ✅ Step 4: Update UI Immediately
-      setData(filteredResponse.data || []);
-      setPage(1);
-      setHasMore(filteredResponse.nextPage);
-    } catch (error) {
-      console.error("❌ Error applying filters:", error.message);
-      alert(`Error: ${error.message}`);
+
+const applyFilters = async () => {
+  try {
+    // 🔹 Step 1: Get JWT Token from session
+    const session = await getSession(); // ✅ Get session safely
+
+    if (!session || !session.user?.accessToken) {
+      console.error("❌ JWT Token is missing in session!");
+      alert("You are not authenticated. Please log in again.");
+      return;
     }
-  };
+
+    const token = session.user.accessToken; // ✅ Extract JWT Token
+    console.log("🔹 Using Token:", token);
+
+    // 🔹 Step 2: Remove empty filters before sending request
+    const activeFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value.trim() !== "")
+    );
+
+    const query = new URLSearchParams(activeFilters).toString();
+    console.log("🔹 Sending Filter Request to:", `/api/job-slip?${query}`);
+
+    // 🔹 Step 3: Send request with JWT token in headers
+    const res = await fetch(`/api/job-slip?${query}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`, // ✅ Send JWT token
+      },
+    });
+
+    if (!res.ok) {
+      const errorResponse = await res.json();
+      throw new Error(errorResponse.message || "Failed to fetch filtered data");
+    }
+
+    const filteredResponse = await res.json();
+    console.log("🟢 Filtered Data Received:", filteredResponse);
+
+    // ✅ Step 4: Update UI Immediately
+    setData(filteredResponse.data || []);
+    setPage(1);
+    setHasMore(filteredResponse.nextPage);
+  } catch (error) {
+    console.error("❌ Error applying filters:", error.message);
+    alert(`Error: ${error.message}`);
+  }
+};
+
   
   
   
@@ -330,8 +328,8 @@ export default function JobSlipPage({ initialData, nextPage }) {
               >
                 <option value="">Select Status</option>
                 <option value="Pending">Pending</option>
-                <option value="In%20Progress">In Progress</option>
-                <option value="Verified%20&%20Closed">Verified & Closed</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Verified & Closed">Verified & Closed</option>
               </select>
             </div>
             <button
@@ -468,7 +466,7 @@ export default function JobSlipPage({ initialData, nextPage }) {
 }
 
 
-import { getSession } from "next-auth/react";
+import { getSession, useSession } from "next-auth/react";
 
 export async function getServerSideProps(context) {
   const session = await getSession(context);

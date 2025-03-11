@@ -309,7 +309,7 @@ export default async function handler(req, res) {
                 from: process.env.EMAIL_FROM,
                 to: technician.email,
                 subject: `New Jobslip Created: ${newJobSlip.jobId}`,
-                text: `Hello ${technician.name},\n\nA new jobslip (${newJobSlip.jobId}) has been created by ${createdByUser.name}. Please review it at the following link:\n\n${process.env.APP_URL}/customer-relation/job-slip/view/${newJobSlip.id}\n\nThank you.`,
+                text: `Hello ${technician.name},\n\nA new jobslip (${newJobSlip.jobId}) has been created by ${createdByUser.name}. Please review it at the following link:\n\n${process.env.NEXTAUTH_URL}/customer-relation/job-slip/view/${newJobSlip.id}\n\nThank you.`,
               })
             );
           
