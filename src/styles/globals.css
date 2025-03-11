@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* styles/global.css */
+
+/* Variation 1: Dark Orange + Deep Purple */
+@keyframes backgroundColorVariation1 {
+    0% { background-color: #1B1B1B; } /* Very dark gray (almost black) */
+    25% { background-color: #512D6D; } /* Deep purple */
+    50% { background-color: #8E24AA; } /* Dark violet */
+    75% { background-color: #D65A31; } /* Dark orange */
+    100% { background-color: #1B1B1B; } /* Back to the start color */
+  }
+  
+  /* Variation 2: Dark Orange + Charcoal Gray */
+  @keyframes backgroundColorVariation2 {
+    0% { background-color: #1B1B1B; } /* Very dark gray (almost black) */
+    25% { background-color: #424242; } /* Charcoal gray */
+    50% { background-color: #616161; } /* Darker gray */
+    75% { background-color: #D65A31; } /* Dark orange */
+    100% { background-color: #1B1B1B; } /* Back to the start color */
+  }
+  
+  /* Variation 3: Black + Burgundy */
+  @keyframes backgroundColorVariation3 {
+    0% { background-color: #000000; } /* Pure black */
+    25% { background-color: #800000; } /* Burgundy */
+    50% { background-color: #9C27B0; } /* Dark purple */
+    75% { background-color: #D65A31; } /* Dark orange */
+    100% { background-color: #000000; } /* Back to the start color */
+  }
+  
+  /* Variation 4: Dark Orange + Midnight Blue */
+  @keyframes backgroundColorVariation4 {
+    0% { background-color: #1B1B1B; } /* Very dark gray (almost black) */
+    25% { background-color: #003366; } /* Midnight blue */
+    50% { background-color: #004D40; } /* Dark teal */
+    75% { background-color: #D65A31; } /* Dark orange */
+    100% { background-color: #1B1B1B; } /* Back to the start color */
+  }
+  
+  /* Variation 5: Black + Deep Red */
+  @keyframes backgroundColorVariation5 {
+    0% { background-color: #000000; } /* Pure black */
+    25% { background-color: #B71C1C; } /* Deep red */
+    50% { background-color: #D32F2F; } /* Dark red */
+    75% { background-color: #D65A31; } /* Dark orange */
+    100% { background-color: #000000; } /* Back to the start color */
+  }
+  
+  /* Variation 6: Dark Gray + Ash Blue */
+  @keyframes backgroundColorVariation6 {
+    0% { background-color: #212121; } /* Very dark gray */
+    25% { background-color: #2C3E50; } /* Dark blue-gray */
+    50% { background-color: #34495E; } /* Ash blue */
+    75% { background-color: #D65A31; } /* Dark orange */
+    100% { background-color: #212121; } /* Back to the start color */
+  }
+  
+  /* Base style to apply one of the variations */
+  .animate-backgroundColorRandom {
+    animation: backgroundColorVariation1 15s ease-in-out infinite; /* Default to Variation 1 */
+  }
+  
+.animate-backgroundColorVariation1 {
+    animation: backgroundColorVariation1 15s ease-in-out infinite; /* Default to Variation 1 */
+}
+
+
+.animate-backgroundColorVariation2 {
+    animation: backgroundColorVariation2 15s ease-in-out infinite; /* Default to Variation 1 */
+}
+
+.animate-backgroundColorVariation3 {
+    animation: backgroundColorVariation3 15s ease-in-out infinite; /* Default to Variation 1 */
+}
+
+.animate-backgroundColorVariation4 {
+    animation: backgroundColorVariation4 15s ease-in-out infinite; /* Default to Variation 1 */
+}
+
+.animate-backgroundColorVariation5 {
+    animation: backgroundColorVariation5 15s ease-in-out infinite; /* Default to Variation 1 */
+}.animate-backgroundColorVariation6 {
+    animation: backgroundColorVariation6 15s ease-in-out infinite; /* Default to Variation 1 */
+}
+
+/* For Webkit browsers like Chrome, Safari */
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}

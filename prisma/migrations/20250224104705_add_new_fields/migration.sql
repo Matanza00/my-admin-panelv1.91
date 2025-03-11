@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `chiller` ADD COLUMN `HeatIn` DOUBLE NULL,
+    ADD COLUMN `HeatOut` DOUBLE NULL;

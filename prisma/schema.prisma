@@ -1,0 +1,634 @@
+// prisma/schema.prisma
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL") // Make sure to configure this in .env
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model FeedbackComplain {
+  id           Int       @id @default(autoincrement()) // Primary key, auto-incrementing
+  complain     String // Description of the complaint
+  date         DateTime // Date of the complaint
+  complainNo   String    @unique // Unique identifier for the complaint (relation key)
+  complainBy   String? // Who made the complaint
+  floorNo      String // Floor number where the issue is
+  area         String // Area in the building where the issue is located
+  location     String // Specific location within the Block
+  locations    String? // Specific location within the building/area
+  listServices String // List of services requested
+  materialReq  String? // Materials required to address the issue
+  actionTaken  String? // Actions taken to resolve the complaint
+  attendedBy   String? // Person who attended to the complaint
+  remarks      String // Any additional remarks
+  status       String // Current status of the complaint (e.g., "Open", "Closed")
+  tenantId     Int // Foreign key to tenants
+  tenant       tenants   @relation(fields: [tenantId], references: [id]) // Relation to tenants
+  createdAt    DateTime  @default(now()) // Timestamp of when the complaint was created
+  updatedAt    DateTime  @updatedAt // Timestamp of the last update
+  deletedAt    DateTime? // Nullable, default null (for soft deletes)
+
+  jobSlips JobSlip[] // One-to-many relation: a complaint can have many job slips
+}
+
+model JobSlip {
+  id                 Int       @id @default(autoincrement()) // Primary key, auto-incrementing
+  date               DateTime // Date of the job slip
+  jobId              String // Unique job identifier
+  complainNo         String // Complaint number, linked to FeedbackComplain
+  complainBy         String? // Who made the complaint
+  floorNo            String // Floor number
+  area               String // Area in the building
+  inventoryRecieptNo               String? // Reciept of inv for material sent
+  location           String // Specific location within the area
+  complaintDesc      String // Description of the complaint
+  materialReq        String // Materials required for the job
+  actionTaken        String // Action taken for the job
+  attendedBy         String // Person attending to the job
+  department         String // Additional remarks
+  remarks            String // Additional remarks
+  completed_At       DateTime? // Completion timestamp (nullable)
+  status             String // Status of the job slip
+  supervisorApproval Boolean // Supervisor's approval status
+  managementApproval Boolean // Management's approval status
+  createdAt          DateTime  @default(now()) // Timestamp of job slip creation
+  updatedAt          DateTime  @updatedAt // Timestamp of the last update
+  deletedAt          DateTime? // Nullable, default null (for soft deletes)
+  // Add picture field for storing multiple images as a string (comma-separated URLs or filenames)
+  picture            String?  // Nullable, will store comma-separated image URLs or filenames
+
+  feedbackComplain FeedbackComplain @relation(fields: [complainNo], references: [complainNo]) // Foreign key relation to FeedbackComplain
+}
+
+model DutyChart {
+  id         Int          @id @default(autoincrement()) // Primary key, auto-incrementing
+  date       DateTime // Date of the duty chart
+  supervisor String // Supervisor's name
+  attendance Attendance[] // One-to-many relation: multiple attendances can be associated with a duty chart
+  remarks    String // Remarks related to the duty chart
+  picture    String? // Picture URL (optional)
+  createdAt  DateTime     @default(now()) // Timestamp of creation
+  updatedAt  DateTime     @updatedAt // Timestamp of last update
+  deletedAt  DateTime? // Soft delete timestamp (nullable)
+}
+
+model Attendance {
+  id          Int       @id @default(autoincrement()) // Primary key, auto-incrementing
+  name        String // Name of the person
+  designation String // Designation of the person
+  timeIn      DateTime // Time the person clocked in
+  timeOut     DateTime // Time the person clocked out
+  lunchIn     DateTime? // Time when lunch break started (nullable)
+  lunchOut    DateTime? // Time when lunch break ended (nullable)
+  dutyChartId Int // Foreign key to DutyChart
+  dutyChart   DutyChart @relation(fields: [dutyChartId], references: [id]) // Relation to DutyChart
+  createdAt   DateTime  @default(now()) // Timestamp of creation
+  updatedAt   DateTime  @updatedAt // Timestamp of last update
+  deletedAt   DateTime? // Soft delete timestamp (nullable)
+}
+
+model tenants {
+  id               Int                @id @default(autoincrement())
+  tenantName       String
+  userId           Int?
+  totalAreaSq      Float
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  deletedAt        DateTime?
+  area             area[]
+  occupancy        occupancy[]
+  feedbackComplain FeedbackComplain[] // Back-reference for relation
+}
+
+model area {
+  id           Int       @id @default(autoincrement())
+  floor        String
+  occupiedArea Float
+  location     String?
+  tenantId     Int
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  tenants      tenants   @relation(fields: [tenantId], references: [id], map: "Area_tenantId_fkey")
+
+  @@index([tenantId], map: "Area_tenantId_fkey")
+}
+
+model occupancy {
+  id            Int       @id @default(autoincrement())
+  tenantId      Int
+  totalArea     Float
+  rentedArea    Float
+  occupancyArea Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+  tenants       tenants   @relation(fields: [tenantId], references: [id], map: "Occupancy_tenantId_fkey")
+
+  @@index([tenantId], map: "Occupancy_tenantId_fkey")
+}
+
+model JanitorialAttendance {
+  id            Int      @id @default(autoincrement())
+  date          DateTime
+  supervisor    String
+  totalJanitors Int
+  strength      Int
+  remarks       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  janitorAbsences JanitorAbsence[] // Relation to JanitorAbsence model
+}
+
+model JanitorAbsence {
+  id                     Int      @id @default(autoincrement())
+  name                   String
+  isAbsent               Boolean
+  janitorialAttendanceId Int
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  janitorialAttendance JanitorialAttendance @relation(fields: [janitorialAttendanceId], references: [id])
+}
+
+model JanitorialReport {
+  id           Int            @id @default(autoincrement())
+  date         DateTime       @db.Date
+  supervisor   String
+  tenant       String
+  remarks      String?
+  subJanReport SubJanReport[] @relation("JanitorialReportSubReports")
+}
+
+model SubJanReport {
+  id                 Int              @id @default(autoincrement())
+  floorNo            String?
+  toilet             String
+  lobby              String
+  staircase          String
+  janitorialReportId Int
+  janitorialReport   JanitorialReport @relation("JanitorialReportSubReports", fields: [janitorialReportId], references: [id])
+}
+
+model User {
+  id                 Int                @id @default(autoincrement())
+  name               String
+  email              String             @unique
+  username           String             @unique
+  password           String
+  roleId             Int?
+  departmentId       Int? // Added departmentId to link the user to a department
+  role               Role?              @relation(fields: [roleId], references: [id])
+  department         Department?        @relation(fields: [departmentId], references: [id]) // Relation to the department
+  firefightingDuties FirefightingDuty[] @relation("UserFirefightingDuty")
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+model Role {
+  id          Int                        @id @default(autoincrement())
+  name        String                     @unique
+  users       User[]
+  permissions RoleDepartmentPermission[]
+}
+
+model Permission {
+  id    Int                        @id @default(autoincrement())
+  name  String                     @unique
+  roles RoleDepartmentPermission[]
+}
+
+model Department {
+  id              Int                        @id @default(autoincrement())
+  name            String                     @unique
+  code            String? // Optional, no longer unique
+  users           User[] // Back-relation field for users
+  rolePermissions RoleDepartmentPermission[]
+}
+
+model RoleDepartmentPermission {
+  id           Int         @id @default(autoincrement())
+  roleId       Int?
+  permissionId Int?
+  departmentId Int?
+  role         Role?       @relation(fields: [roleId], references: [id])
+  permission   Permission? @relation(fields: [permissionId], references: [id])
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  @@unique([roleId, permissionId, departmentId]) // Ensures no duplicate permissions for the same department and role
+}
+
+model FCUReport {
+  id                 Int       @id @default(autoincrement())
+  date               DateTime
+  remarks            String
+  supervisorApproval Boolean
+  engineerApproval   Boolean
+  floorFCs           FloorFC[] // Define the one-to-many relation with FloorFC
+}
+
+model FloorFC {
+  id          Int       @id @default(autoincrement())
+  floorFrom   String // Updated field name to match your description
+  floorTo     String // Updated field name to match your description
+  details     String
+  verifiedBy  String
+  attendedBy  String
+  fcuReportId Int // No @unique, as multiple FloorFCs will have the same fcuReportId
+  fcuReport   FCUReport @relation(fields: [fcuReportId], references: [id])
+}
+
+model HotWaterBoiler {
+  id             Int        @id @default(autoincrement())
+  Date           DateTime   @default(now())
+  StartTime      DateTime
+  TimeHr         TimeHour[]
+  ShutdownTime   DateTime
+  Remarks        String
+  OperatorName   String
+  SupervisorName String
+  EngineerName   String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model TimeHour {
+  id                  Int            @id @default(autoincrement())
+  boilerId            Int
+  time                DateTime       @default(now())
+  HotWaterIn          Float
+  HotWaterOut         Float
+  ExhaustTemp         Float
+  FurnacePressure     Float
+  assistantSupervisor String // New field for Assistant Supervisor
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  HotWaterBoiler      HotWaterBoiler @relation(fields: [boilerId], references: [id])
+}
+
+model AbsorbtionChiller {
+  id             Int       @id @default(autoincrement())
+  Date           DateTime  @default(now())
+  StartTime      DateTime
+  Chillers       Chiller[]
+  ShutdownTime   DateTime
+  Remarks        String
+  OperatorName   String
+  SupervisorName String
+  EngineerName   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Chiller {
+  id                  Int               @id @default(autoincrement())
+  chillerId           Int
+  time                DateTime          @default(now())
+  ColdWaterIn         Float
+  ColdWaterOut        Float
+  ChillingWaterIn     Float
+  ChillingWaterOut    Float
+  HeatIn              Float?
+  HeatOut             Float?
+  assistantSupervisor String // New field for Assistant Supervisor
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  AbsorbtionChiller   AbsorbtionChiller @relation(fields: [chillerId], references: [id])
+}
+
+model WaterManagement {
+  id             Int      @id @default(autoincrement())
+  title          String
+  description    String
+  supervisorName String
+  operatorName   String
+  engineerName   String?
+  pumps          Pump[] // One-to-many relationship with Pump
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Pump {
+  id                Int             @id @default(autoincrement())
+  name              String
+  capacity          Float
+  location          String
+  waterManagement   WaterManagement @relation(fields: [waterManagementId], references: [id])
+  waterManagementId Int
+  checks            PumpCheck[] // One-to-many relationship with PumpCheck
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model PumpCheck {
+  id                   Int      @id @default(autoincrement())
+  pumpId               Int
+  waterSealStatus      String
+  pumpBearingStatus    String
+  motorBearingStatus   String
+  rubberCouplingStatus String
+  pumpImpellerStatus   String
+  mainValvesStatus     String
+  motorWindingStatus   String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  Pump                 Pump     @relation(fields: [pumpId], references: [id])
+}
+
+model PlumbingProject {
+  id             Int        @id @default(autoincrement())
+  date           DateTime
+  plumberName    String
+  supervisorName String
+  engineerName   String?
+  locations      Location[] // One-to-many relation to Location
+}
+
+model Location {
+  id                Int             @id @default(autoincrement())
+  locationName      String
+  locationFloor     String
+  remarks           String? // Optional remarks
+  plumbingProjectId Int // Foreign key to PlumbingProject
+  plumbingProject   PlumbingProject @relation(fields: [plumbingProjectId], references: [id])
+  rooms             Room[] // One-to-many relation to Room
+}
+
+model Room {
+  id            Int            @id @default(autoincrement())
+  roomName      String
+  locationId    Int
+  location      Location       @relation(fields: [locationId], references: [id])
+  plumbingCheck PlumbingCheck? // One-to-one relation to PlumbingCheck
+}
+
+model PlumbingCheck {
+  id            Int     @id @default(autoincrement())
+  washBasin     Boolean @default(false)
+  shower        Boolean @default(false)
+  waterTaps     Boolean @default(false)
+  commode       Boolean @default(false)
+  indianWC      Boolean @default(false)
+  englishWC     Boolean @default(false)
+  waterFlushKit Boolean @default(false)
+  waterDrain    Boolean @default(false)
+  roomId        Int     @unique
+  room          Room    @relation(fields: [roomId], references: [id])
+}
+
+model FireFighting {
+  id                       Int      @id @default(autoincrement())
+  date                     DateTime
+  firefighterName          String
+  addressableSmokeStatus   Boolean  @default(false)
+  fireAlarmingSystemStatus Boolean  @default(false)
+  dieselEnginePumpStatus   Boolean  @default(false)
+  wetRisersStatus          Boolean  @default(false)
+  hoseReelCabinetsStatus   Boolean  @default(false)
+  externalHydrantsStatus   Boolean  @default(false)
+  waterStorageTanksStatus  Boolean  @default(false)
+  emergencyLightsStatus    Boolean  @default(false)
+  remarks                  String? // Optional remarks field
+}
+
+model Generator {
+  id              Int             @id @default(autoincrement())
+  date            DateTime
+  genSetNo        String
+  power           String // CAT 650kVA
+  capacity        Int // 1000ltr
+  generatorFuel   GeneratorFuel[] // Change to a one-to-many relation
+  engOil          Boolean         @default(false)
+  fuelFilter      Boolean         @default(false)
+  airFilter       Boolean         @default(false)
+  currHrs         Int
+  currDate        DateTime
+  lastHrs         Int
+  lastDate        DateTime
+  electricianName String
+  supervisorName  String
+  engineerName    String
+}
+
+model GeneratorFuel {
+  id           Int       @id @default(autoincrement())
+  generatorId  Int
+  fuelLast     Int // Last fuel level
+  fuelConsumed Int // Fuel consumed
+  fuelReceived Int // Fuel received
+  available    Int // Available fuel
+  generator    Generator @relation(fields: [generatorId], references: [id])
+}
+
+model Transformer {
+  id              Int       @id @default(autoincrement())
+  date            DateTime  @default(now())
+  transformerNo   String
+  lastMaintenance DateTime?
+  nextMaintenance DateTime?
+  lastDehydration DateTime?
+  nextDehydration DateTime?
+  engineer        Int
+  temp            Float?
+  tempStatus      String?  // New field for temperature status
+  HTvoltage         Float?
+  HTStatus         String?
+  LTvoltage         Float?
+  LTStatus   String?  // New field for voltage status
+
+  @@map("transformers") // Optional: specifies the table name in the database (can be adjusted if needed)
+}
+
+
+model FirefightingDuty {
+  id        Int      @id @default(autoincrement())
+  date      DateTime
+  shift     String // "Morning" or "Evening"
+  users     User[]   @relation("UserFirefightingDuty")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model securityreport {
+  id          Int       @id @default(autoincrement())
+  date        DateTime
+  observedBy  Int
+  supervisor  Int
+  description String
+  action      String
+  timeNoted   DateTime
+  timeSolved  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+
+
+model dailydutyreport {
+  id         Int       @id @default(autoincrement())
+  date       DateTime
+  shift      String
+  supervisor Int       // Changed from String to Int, no relation
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  usersec    usersec[]
+}
+
+model usersec {
+  id              Int              @id @default(autoincrement())
+  name            String
+  designation     String
+  timeIn          DateTime
+  timeOut         DateTime
+  location        String
+  userId          String?
+  dailyDutyId     Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  dailydutyreport dailydutyreport? @relation(fields: [dailyDutyId], references: [id], map: "UserSec_dailyDutyId_fkey")
+
+  @@index([dailyDutyId], map: "UserSec_dailyDutyId_fkey")
+}
+
+
+model CCTVReport {
+  id                Int       @id @default(autoincrement())
+  date              DateTime
+  time              DateTime
+  remarks           String?
+  operationalReport Boolean
+  cctvOperator      Int
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+  camera            camera[] // Relation with the camera model
+
+  @@map("cctvreport")
+}
+
+model camera {
+  id             Int         @id @default(autoincrement())
+  cameraName     String // Name of the DVR or NVR (e.g., DVR 1, NVR 2)
+  cameraNo       String // Camera number (e.g., Camera-1, Camera-2)
+  cameraLocation String // Location of the camera
+  cctvReportId   Int?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  deletedAt      DateTime?
+  cctvreport     CCTVReport? @relation(fields: [cctvReportId], references: [id], map: "Camera_cctvReportId_fkey")
+
+  @@index([cctvReportId], map: "Camera_cctvReportId_fkey")
+}
+
+
+
+
+
+model Notification {
+  id               Int       @id @default(autoincrement())
+  templateId       Int       // Foreign key linking to the NotificationTemplate
+  userId           Int       // The user this notification is sent to
+  createdById      Int       // The user who created the notification
+  template         NotificationTemplate @relation("NotificationTemplateNotifications", fields: [templateId], references: [id])
+  altText           String?
+  link              String?   // Add this field for the redirection link
+  isRead           Boolean   @default(false) // Whether the user has read the notification
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  sentAt           DateTime? // When the notification was actually sent
+}
+
+model NotificationTemplate {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique // A name or identifier for the notification template
+  templateText String      // The actual editable notification text content
+  isEditable  Boolean      @default(true)  // Flag to determine if the template is editable
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Notifications sent using this template
+  notifications Notification[] @relation("NotificationTemplateNotifications")
+}
+
+
+model CarBooking {
+  id              Int      @id @default(autoincrement())
+  carId          Int
+  car           Car      @relation(fields: [carId], references: [id])
+  driverId      Int
+  driver        Driver   @relation(fields: [driverId], references: [id])
+  startTime     DateTime
+  endTime       DateTime? // Nullable, updated when booking ends
+  odometerStart Int
+  odometerEnd   Int?
+  distanceTraveled Int?
+  cost          Decimal?
+  status        String   @default("BOOKED") // New status field
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+
+model Car {
+  id                Int      @id @default(autoincrement())
+  plate            String   @unique
+  vinNo            String   @unique
+  color            String
+  make             String
+  model            String
+  year             Int
+  driverId         Int?     @unique
+  driver           Driver?  @relation(fields: [driverId], references: [id])
+  maintenanceRecords MaintenanceRecord[]
+  insurances        Insurance[]
+  bookings         CarBooking[]  // ✅ Added back-reference for CarBooking
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Driver {
+  id                Int      @id @default(autoincrement())
+  name              String
+  age               Int
+  department        String
+  phoneNo           String   @unique
+  cnic              String   @unique
+  emergencyContact  String
+  cars             Car[]
+  bookings         CarBooking[]  // ✅ Added back-reference for CarBooking
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+
+model MaintenanceRecord {
+  id                Int      @id @default(autoincrement())
+  carId             Int
+  car              Car      @relation(fields: [carId], references: [id])
+  startDate        DateTime
+  endDate          DateTime?
+  images           String? // Array of image URLs
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Insurance {
+  id                Int      @id @default(autoincrement())
+  carId             Int
+  car              Car      @relation(fields: [carId], references: [id])
+  startDate        DateTime
+  endDate          DateTime?
+  images           String? // Array of image URLs
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+
+
