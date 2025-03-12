@@ -174,13 +174,13 @@ export default function SecurityReportPage({ initialData, nextPage }) {
           <h1 className="text-2xl font-semibold mb-6">Security Reports</h1>
   
           {/* Filter Button */}
-          <button
+          {/* <button
             onClick={toggleFilter}
             className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg flex justify-between items-center hover:bg-gray-900 transition-all duration-300"
           >
             <span className="text-lg">Filter</span>
             <HiFilter className="text-lg" />
-          </button>
+          </button> */}
   
           {/* Filter Section */}
           {isFilterOpen && (

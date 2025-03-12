@@ -207,13 +207,13 @@ export default function WaterManagementPage({ initialData, nextPage }) {
         <h1 className="text-4xl font-semibold mb-8 text-white">Water Management</h1>
 
         {/* Filter Button */}
-        <button
+        {/* <button
           onClick={toggleFilter}
           className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg flex justify-between items-center hover:bg-blue-700 transition duration-300 mb-6"
         >
           <span className="text-lg">Filters</span>
           <HiFilter className="text-lg" />
-        </button>
+        </button> */}
 
         {/* Filter Section */}
         {isFilterOpen && (

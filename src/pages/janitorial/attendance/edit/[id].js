@@ -42,25 +42,54 @@ export default function EditJanitorialAttendance() {
     );
   };
 
-  const handleAbsenceChange = (index, e) => {
-    const { name, value, type, checked } = e.target;
-    const updatedAbsences = [...absences];
-    if (type === 'checkbox') {
-      updatedAbsences[index][name] = checked;
-    } else {
-      updatedAbsences[index][name] = value;
-    }
-    setAbsences(updatedAbsences);
-  };
+  // Function to recalculate strength
+// Function to dynamically recalculate strength
+const recalculateStrength = (updatedAbsences) => {
+  const totalJanitors = updatedAbsences.length; // Total people in the list
+  const absentCount = updatedAbsences.filter((a) => a.isAbsent).length;
+  const newStrength = Math.max(totalJanitors - absentCount, 0); // Ensure strength never goes negative
 
-  const addAbsenceField = () => {
-    setAbsences([...absences, { name: '', isAbsent: true }]);
-  };
+  setStrength(newStrength);
+};
 
-  const removeAbsenceField = (index) => {
-    const updatedAbsences = absences.filter((_, i) => i !== index);
-    setAbsences(updatedAbsences);
-  };
+// Handle changes in absence list
+const handleAbsenceChange = (index, e) => {
+  const { name, value, type, checked } = e.target;
+  const updatedAbsences = [...absences];
+
+  if (type === 'checkbox') {
+    updatedAbsences[index][name] = checked;
+  } else {
+    updatedAbsences[index][name] = value;
+  }
+
+  setAbsences(updatedAbsences);
+  recalculateStrength(updatedAbsences);
+};
+
+// Add a new absence field and update strength
+const addAbsenceField = () => {
+  const updatedAbsences = [...absences, { name: '', isAbsent: true }];
+  setAbsences(updatedAbsences);
+  recalculateStrength(updatedAbsences);
+};
+
+// Remove an absence field and update strength
+const removeAbsenceField = (index) => {
+  const updatedAbsences = absences.filter((_, i) => i !== index);
+  setAbsences(updatedAbsences);
+  recalculateStrength(updatedAbsences);
+};
+
+// Run recalculation when attendance data is loaded
+useEffect(() => {
+  if (attendance) {
+    setAbsences(attendance.janitorAbsences);
+    recalculateStrength(attendance.janitorAbsences);
+  }
+}, [attendance]);
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

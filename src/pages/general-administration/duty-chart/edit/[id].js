@@ -2,6 +2,17 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import Layout from "../../../../components/layout";
 
+// Helper function to convert UTC to local time
+const convertToLocalTimeForInput  = (utcDateTime) => {
+  if (!utcDateTime) return "";
+  const localDate = new Date(utcDateTime);
+
+  // Format to "YYYY-MM-DDTHH:MM" required by <input type="datetime-local">
+  return `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, "0")}-${String(localDate.getDate()).padStart(2, "0")}T${String(localDate.getHours()).padStart(2, "0")}:${String(localDate.getMinutes()).padStart(2, "0")}`;
+};
+
+
+
 const EditDutyChartPage = () => {
   const router = useRouter();
   const { id } = router.query;
@@ -11,28 +22,56 @@ const EditDutyChartPage = () => {
   const [file, setFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [supervisors, setSupervisors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fetch DutyChart data when page loads
+  // Fetch Duty Chart data
   useEffect(() => {
-    if (id) {
-      fetch(`/api/dutychart/${id}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setDutyChart(data);
-          setAttendance(data.attendance || []);
-        });
-    }
-    console.log(dutyChart)
+    if (!id) return;
+
+    const fetchDutyChart = async () => {
+      try {
+        const response = await fetch(`/api/dutychart/${id}`);
+        if (!response.ok) throw new Error(`Failed to fetch duty chart. Status: ${response.status}`);
+
+        const data = await response.json();
+        setDutyChart(data);
+        setAttendance(
+          data.attendance?.map((att) => ({
+            ...att,
+            timeIn: convertToLocalTimeForInput(att.timeIn),
+            timeOut: convertToLocalTimeForInput(att.timeOut),
+            lunchIn: convertToLocalTimeForInput(att.lunchIn),
+            lunchOut: convertToLocalTimeForInput(att.lunchOut),
+          })) || []
+        );
+      } catch (err) {
+        console.error("❌ Error fetching duty chart:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDutyChart();
   }, [id]);
 
-  // Fetch supervisors when the page loads
+  // Fetch supervisors
   useEffect(() => {
-    fetch("http://localhost:3000/api/users/filtered?roles=supervisor&department=Building")
-      .then((response) => response.json())
-      .then((data) => {
+    const fetchSupervisors = async () => {
+      try {
+        const response = await fetch("/api/users/filtered?roles=supervisor&department=Building");
+        if (!response.ok) throw new Error(`Failed to fetch supervisors. Status: ${response.status}`);
+
+        const data = await response.json();
         setSupervisors(data || []);
-      })
-      .catch((error) => console.error("Error fetching supervisors:", error));
+      } catch (err) {
+        console.error("❌ Error fetching supervisors:", err);
+        setError(err.message);
+      }
+    };
+
+    fetchSupervisors();
   }, []);
 
   const handleFileChange = (e) => {
@@ -71,67 +110,61 @@ const EditDutyChartPage = () => {
   };
 
   const handleRemoveAttendance = (index) => {
-    const newAttendance = [...attendance];
-    newAttendance.splice(index, 1);
-    setAttendance(newAttendance);
+    setAttendance(attendance.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    let pictureUrl = null;
+    let pictureUrl = dutyChart.picture;
 
     if (file) {
       const formData = new FormData();
       formData.append("file", file);
 
-      const uploadResponse = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      try {
+        const uploadResponse = await fetch("/api/upload", { method: "POST", body: formData });
+        if (!uploadResponse.ok) throw new Error("Image upload failed");
 
-      if (uploadResponse.ok) {
         const result = await uploadResponse.json();
         pictureUrl = `/uploads/${result.filename}`;
-      } else {
-        alert("Image upload failed");
+      } catch (err) {
+        alert(err.message);
+        return;
       }
     }
 
-    
     const requestBody = {
       id: dutyChart.id,
       date: dutyChart.date,
-      supervisor: dutyChart.supervisor, // Send supervisor ID
+      supervisor: dutyChart.supervisor,
       remarks: dutyChart.remarks,
-      picture: pictureUrl || dutyChart.picture,
-      attendance: attendance,
+      picture: pictureUrl,
+      attendance,
     };
-    console.log(requestBody)
-    const response = await fetch(`/api/dutychart/${id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestBody),
-    });
 
-    if (response.ok) {
+    try {
+      const response = await fetch(`/api/dutychart/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) throw new Error("Error updating duty chart");
+
       alert("Duty chart updated successfully");
       router.push("/general-administration/duty-chart");
-    } else {
-      alert("Error updating duty chart");
+    } catch (err) {
+      alert(err.message);
     }
   };
- 
-  
 
-  if (!dutyChart) return <div>Loading...</div>;
-  console.log(dutyChart.supervisor
-  )
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div className="text-red-600">Error: {error}</div>;
+  if (!dutyChart) return <div className="text-red-600">Error loading duty chart.</div>;
+
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto p-4">
+      <div className="p-4">
         <h1 className="text-2xl font-bold mb-4">Edit Duty Chart</h1>
 
         <form onSubmit={handleSubmit}>
@@ -149,10 +182,17 @@ const EditDutyChartPage = () => {
             <label className="block text-sm font-medium text-gray-700">Supervisor</label>
             <select
               className="w-full p-2 border rounded"
-              value={dutyChart.supervisor}
+              value={dutyChart.supervisor || ""}
               onChange={(e) => setDutyChart({ ...dutyChart, supervisor: e.target.value })}
             >
-              <option value="">{dutyChart.supervisor}</option>
+              {/* If a supervisor is set, select it */}
+              {dutyChart.supervisor && !supervisors.some(sup => sup.id === dutyChart.supervisor) && (
+                <option value={dutyChart.supervisor} disabled>
+                  {dutyChart.supervisor} (Not Found)
+                </option>
+              )}
+
+              <option value="">Select Supervisor</option> 
               {supervisors.map((supervisor) => (
                 <option key={supervisor.id} value={supervisor.id}>
                   {supervisor.name}
@@ -160,7 +200,6 @@ const EditDutyChartPage = () => {
               ))}
             </select>
           </div>
-
 
 
 
@@ -175,96 +214,85 @@ const EditDutyChartPage = () => {
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">Picture</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="w-full p-2 border rounded"
-            />
+            <input type="file" accept="image/*" onChange={handleFileChange} className="w-full p-2 border rounded" />
             {imagePreview ? (
-              <div className="mt-2">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-auto max-w-[300px] rounded"
-                />
-              </div>
+              <img src={imagePreview} alt="Preview" className="mt-2 max-w-[300px] rounded" />
             ) : dutyChart.picture ? (
-              <div className="mt-2">
-                <img
-                  src={dutyChart.picture}
-                  alt="Current Duty Chart Picture"
-                  className="w-full h-auto max-w-[300px] rounded"
-                />
-              </div>
+              <img src={dutyChart.picture} alt="Current Duty Chart" className="mt-2 max-w-[300px] rounded" />
             ) : (
               <div className="mt-2 text-gray-500">No image found</div>
             )}
           </div>
 
           <div className="mb-4">
-            <h2 className="text-xl font-semibold mb-2">Attendance</h2>
-            {attendance.map((att, index) => (
-              <div key={index} className="flex gap-4 mb-2">
-                <input
-                  type="text"
-                  value={att.name || ""}
-                  onChange={(e) => handleAttendanceChange(index, "name", e.target.value)}
-                  placeholder="Name"
-                  className="p-2 border rounded w-1/6"
-                />
-                <input
-                  type="text"
-                  value={att.designation || ""}
-                  onChange={(e) => handleAttendanceChange(index, "designation", e.target.value)}
-                  placeholder="Designation"
-                  className="p-2 border rounded w-1/6"
-                />
-                <input
-                  type="datetime-local"
-                  value={(att.timeIn || "").slice(0, 16)}
-                  onChange={(e) => handleAttendanceChange(index, "timeIn", e.target.value)}
-                  className="p-2 border rounded w-1/6"
-                />
-                <input
-                  type="datetime-local"
-                  value={(att.timeOut || "").slice(0, 16)}
-                  onChange={(e) => handleAttendanceChange(index, "timeOut", e.target.value)}
-                  className="p-2 border rounded w-1/6"
-                />
-                <input
-                  type="datetime-local"
-                  value={(att.lunchIn || "").slice(0, 16)}
-                  onChange={(e) => handleAttendanceChange(index, "lunchIn", e.target.value)}
-                  className="p-2 border rounded w-1/6"
-                />
-                <input
-                  type="datetime-local"
-                  value={(att.lunchOut || "").slice(0, 16)}
-                  onChange={(e) => handleAttendanceChange(index, "lunchOut", e.target.value)}
-                  className="p-2 border rounded w-1/6"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleRemoveAttendance(index)}
-                  className="bg-red-500 text-white p-2 rounded"
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={handleAddAttendance}
-              className="bg-green-500 text-white p-2 rounded mt-2"
-            >
-              Add Attendance
-            </button>
+          <h2 className="text-xl font-semibold mb-2">Attendance</h2>
+{attendance.map((att, index) => (
+  <div key={index} className="flex flex-wrap gap-4 mb-2">
+    {/* Name Field */}
+    <input
+      type="text"
+      value={att.name || ""}
+      onChange={(e) => handleAttendanceChange(index, "name", e.target.value)}
+      placeholder="Name"
+      className="p-2 border rounded w-1/6"
+    />
+
+    {/* Designation Field */}
+    <input
+      type="text"
+      value={att.designation || ""}
+      onChange={(e) => handleAttendanceChange(index, "designation", e.target.value)}
+      placeholder="Designation"
+      className="p-2 border rounded w-1/6"
+    />
+
+   {/* Time In Field */}
+<input
+  type="datetime-local"
+  value={convertToLocalTimeForInput(att.timeIn)}
+  onChange={(e) => handleAttendanceChange(index, "timeIn", e.target.value)}
+  className="p-2 border rounded w-1/6"
+/>
+
+{/* Time Out Field */}
+<input
+  type="datetime-local"
+  value={convertToLocalTimeForInput(att.timeOut)}
+  onChange={(e) => handleAttendanceChange(index, "timeOut", e.target.value)}
+  className="p-2 border rounded w-1/6"
+/>
+
+{/* Lunch In Field */}
+<input
+  type="datetime-local"
+  value={convertToLocalTimeForInput(att.lunchIn)}
+  onChange={(e) => handleAttendanceChange(index, "lunchIn", e.target.value)}
+  className="p-2 border rounded w-1/6"
+/>
+
+{/* Lunch Out Field */}
+<input
+  type="datetime-local"
+  value={convertToLocalTimeForInput(att.lunchOut)}
+  onChange={(e) => handleAttendanceChange(index, "lunchOut", e.target.value)}
+  className="p-2 border rounded w-1/6"
+/>
+
+
+    {/* Remove Button */}
+    <button
+      type="button"
+      onClick={() => handleRemoveAttendance(index)}
+      className="bg-red-500 text-white p-2 rounded"
+    >
+      Remove
+    </button>
+  </div>
+))}
+
           </div>
 
-          <button type="submit" className="bg-blue-500 text-white p-2 rounded mt-4">
-            Save
-          </button>
+          <button type="submit" className="bg-blue-500 text-white p-2 rounded mt-4">Save</button>
         </form>
       </div>
     </Layout>

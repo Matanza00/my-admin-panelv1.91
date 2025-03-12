@@ -80,7 +80,7 @@ model Attendance {
   name        String // Name of the person
   designation String // Designation of the person
   timeIn      DateTime // Time the person clocked in
-  timeOut     DateTime // Time the person clocked out
+  timeOut     DateTime? // Time the person clocked out
   lunchIn     DateTime? // Time when lunch break started (nullable)
   lunchOut    DateTime? // Time when lunch break ended (nullable)
   dutyChartId Int // Foreign key to DutyChart

@@ -313,13 +313,13 @@ const exportToPDF = (data) => {
         <h1 className="text-2xl font-semibold mb-6">Duty Chart</h1>
 
         {/* Full-width Filter Button */}
-        <button
+        {/* <button
           onClick={toggleFilter}
           className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg flex justify-between items-center hover:bg-gray-900 transition-all duration-300"
         >
           <span className="text-lg">Filter</span>
           <HiFilter className="text-lg" />
-        </button>
+        </button> */}
 
         {/* Collapsible Filter Section */}
         {isFilterOpen && (
@@ -401,7 +401,7 @@ const exportToPDF = (data) => {
 
         <button
             onClick={toggleModal}
-            className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700"
+            className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 ml-4"
           >
             Export Options
           </button>

@@ -61,6 +61,7 @@ const handler = async (req, res) => {
             update: {
               name: att.name,
               designation: att.designation,
+              department: att.department,
               timeIn: formatDateTime(att.timeIn),
               timeOut: formatDateTime(att.timeOut),
               lunchIn: formatDateTime(att.lunchIn),
@@ -71,6 +72,7 @@ const handler = async (req, res) => {
             create: {
               name: att.name,
               designation: att.designation,
+              department: att.department,
               timeIn: formatDateTime(att.timeIn),
               timeOut: formatDateTime(att.timeOut),
               lunchIn: formatDateTime(att.lunchIn),
@@ -96,38 +98,52 @@ const handler = async (req, res) => {
       break;
 
       case "GET":
-        try {
-          // Fetch the duty chart with its related attendance
-          const dutyChart = await prisma.dutyChart.findUnique({
-            where: { id: parseInt(id) },
-            include: {
-              attendance: true, // Include attendance data
-            },
-          });
-      
-          if (!dutyChart) {
-            return res.status(404).json({ error: "Duty chart not found" });
-          }
-      
-          // Fetch the supervisor's name using the supervisor ID from the duty chart
-          const supervisorId = parseInt(dutyChart.supervisor); // Convert the ID string to an integer
-          const supervisor = await prisma.user.findUnique({
-            where: { id: supervisorId },
-            select: { name: true }, // Fetch only the name
-          });
-      
-          // Replace the supervisor field with the supervisor's name
-          const dutyChartWithSupervisorName = {
-            ...dutyChart,
-            supervisor: supervisor ? supervisor.name : "Unknown", // Use "Unknown" if the supervisor is not found
-          };
-      
-          res.status(200).json(dutyChartWithSupervisorName);
-        } catch (error) {
-          console.error(error);
-          res.status(500).json({ error: "Error fetching the duty chart" });
-        }
-        break;
+  try {
+    console.log(`🔍 Fetching duty chart with ID: ${id}`);
+
+    // Fetch the duty chart with its related attendance
+    const dutyChart = await prisma.dutyChart.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        attendance: true, // Include attendance data
+      },
+    });
+
+    if (!dutyChart) {
+      console.error(`❌ Duty chart not found for ID: ${id}`);
+      return res.status(404).json({ error: "Duty chart not found" });
+    }
+
+    console.log("✅ Duty chart fetched:", dutyChart);
+
+    // Ensure supervisor field exists and is a valid number
+    const supervisorId = dutyChart.supervisor ? parseInt(dutyChart.supervisor) : null;
+
+    let supervisorName = "Unknown";
+
+    if (!isNaN(supervisorId) && supervisorId !== null) {
+      const supervisor = await prisma.user.findUnique({
+        where: { id: supervisorId },
+        select: { name: true },
+      });
+
+      supervisorName = supervisor ? supervisor.name : "Unknown";
+    }
+
+    // Replace the supervisor field with the supervisor's name
+    const dutyChartWithSupervisorName = {
+      ...dutyChart,
+      supervisor: supervisorName,
+    };
+
+    console.log("✅ Sending response:", dutyChartWithSupervisorName);
+    res.status(200).json(dutyChartWithSupervisorName);
+  } catch (error) {
+    console.error("❌ Error fetching the duty chart:", error);
+    res.status(500).json({ error: "Internal Server Error", details: error.message });
+  }
+  break;
+
       
     default:
       res.status(405).json({ error: `Method ${method} Not Allowed` });

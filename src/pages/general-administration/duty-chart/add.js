@@ -130,6 +130,7 @@ const AddDutyChartPage = () => {
         return;
       }
     }
+    
 
     const requestBody = {
       date: dutyChart.date,
@@ -158,7 +159,7 @@ const AddDutyChartPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-3xl mx-auto p-4">
+      <div className="pr-8">
         <h1 className="text-2xl font-bold mb-4 text-center md:text-left">Add Duty Chart</h1>
 
         <form onSubmit={handleSubmit}>
@@ -216,11 +217,11 @@ const AddDutyChartPage = () => {
           <div className="mb-4">
             <h2 className="text-xl font-semibold mb-2">Attendance</h2>
             <div className="overflow-x-auto">
-              <table className="table-auto border-collapse border border-gray-300 w-full text-sm md:text-base">
+              <table className="table-auto mr-0 border-collapse border border-gray-300 w-full text-sm md:text-base">
                 <thead>
                   <tr className="bg-gray-100">
                     <th className="border border-gray-300 px-2 md:px-4 py-2">Department</th>
-                    <th className="border border-gray-300 px-2 md:px-4 py-2">Name</th>
+                    <th className="border border-gray-300 px-16 md:px-12 py-2">Employee Name</th>
                     <th className="border border-gray-300 px-2 md:px-4 py-2">Time In</th>
                     <th className="border border-gray-300 px-2 md:px-4 py-2">Time Out</th>
                     <th className="border border-gray-300 px-2 md:px-4 py-2">Lunch In</th>
@@ -234,9 +235,9 @@ const AddDutyChartPage = () => {
                       <td className="border border-gray-300 px-2 md:px-4 py-2">
                         <select
                           className="w-full p-2 border rounded"
-                          value={att.department}
+                          value={att.designation}
                           onChange={(e) => {
-                            handleAttendanceChange(index, "department", e.target.value);
+                            handleAttendanceChange(index, "designation", e.target.value);
                             fetchUsersByDepartment(e.target.value, index);
                           }}
                         >

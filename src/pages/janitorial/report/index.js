@@ -184,13 +184,13 @@ export default function JanitorialReportPage({ initialData, nextPage, user }) {
         <h1 className="text-3xl font-semibold mb-8 text-gray-800">Janitorial Inspection Report</h1>
 
         {/* Filter Button */}
-        <button
+        {/* <button
           onClick={toggleFilter}
           className="w-full bg-indigo-600 text-white px-6 py-3 rounded-lg flex justify-between items-center hover:bg-indigo-700 transition duration-300 mb-6"
         >
           <span className="text-lg">Filters</span>
           <HiFilter className="text-lg" />
-        </button>
+        </button> */}
 
         {/* Collapsible Filter Section */}
         {isFilterOpen && (
