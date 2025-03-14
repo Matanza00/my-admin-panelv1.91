@@ -10,7 +10,8 @@ const EditFCUReport = ({ fcuReport }) => {
   const [technicians, setTechnicians] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
     // Define floor options (1 to 19)
-    const floorOptions = Array.from({ length: 19 }, (_, i) => (i + 1).toString());
+    const [floorOptions] = useState(["Ground", ...Array.from({ length: 19 }, (_, i) => (i + 1).toString())]);
+
 
   useEffect(() => {
     if (!report) {
@@ -267,24 +268,24 @@ const EditFCUReport = ({ fcuReport }) => {
 
 
               {/* Remove floor button */}
-              <button
+              {/* <button
                 type="button"
                 onClick={() => removeFloor(index)}
                 className="text-red-600 mt-2 hover:text-red-800"
               >
                 Remove Floor
-              </button>
+              </button> */}
             </div>
           ))}
 
           {/* Add new floor button */}
-          <button
+          {/* <button
             type="button"
             onClick={addFloor}
             className="text-green-600 mt-4 hover:text-green-800"
           >
             Add New Floor
-          </button>
+          </button> */}
         </div>
 
         {/* Approval Status */}

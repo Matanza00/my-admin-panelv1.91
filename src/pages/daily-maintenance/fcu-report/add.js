@@ -13,7 +13,7 @@ const AddFCUReport = () => {
   const [technicians, setTechnicians] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [floorOptions] = useState(Array.from({ length: 17 }, (_, i) => (i + 1).toString())); // Floor 1 to 17
+  const [floorOptions] = useState(["Ground", ...Array.from({ length: 19 }, (_, i) => (i + 1).toString())]);
   const router = useRouter();
   const [userId, setUserId] = useState(null); // Store the user's ID
   // Fetch the current user's ID
@@ -69,16 +69,21 @@ const AddFCUReport = () => {
 
   const handleFloorChange = (e, index) => {
     const { name, value } = e.target;
+  
+    console.log(`🟡 Selected ${name} for FloorFC Index ${index}:`, value);
+  
     const updatedFloorFCs = [...report.floorFCs];
     updatedFloorFCs[index] = {
       ...updatedFloorFCs[index],
-      [name]: value,
+      [name]: value, // Ensure the ID is stored
     };
+  
     setReport((prevReport) => ({
       ...prevReport,
       floorFCs: updatedFloorFCs,
     }));
   };
+  
 
   const addFloor = () => {
     setReport((prevReport) => ({

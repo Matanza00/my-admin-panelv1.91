@@ -4,94 +4,109 @@ import Layout from '../../../../components/layout';
 
 const EditFireFighting = () => {
   const router = useRouter();
-  const { id } = router.query;
+  const { id, type = 'fireFighting' } = router.query; // Get type from query parameter
 
-  const [formData, setFormData] = useState({
-    firefighterId: '', // Store firefighter ID
+  // Define fields dynamically based on type
+  const initialFormData = {
+    firefighterId: '',
+    date: '',
+    remarks: '',
+  };
+
+  const firefightingFields = {
     addressableSmokeStatus: false,
     fireAlarmingSystemStatus: false,
+  };
+
+  const firefightingAlarmFields = {
     dieselEnginePumpStatus: false,
-    fireextinguisherStatus: false,
     wetRisersStatus: false,
     hoseReelCabinetsStatus: false,
     externalHydrantsStatus: false,
     waterStorageTanksStatus: false,
     emergencyLightsStatus: false,
-    remarks: '',
-    date: '', // Add date field
+  };
+
+  const [formData, setFormData] = useState({
+    ...initialFormData,
+    ...(type === 'fireFighting' ? firefightingFields : firefightingAlarmFields),
   });
 
-  const [firefighters, setFirefighters] = useState([]); // Dropdown data for firefighters
+  const [firefighters, setFirefighters] = useState([]); // Dropdown for firefighters
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    if (id) {
-      // Fetch data only when the ID is available
-      fetch(`/api/firefighting/${id}`)
+    if (id && type) {
+      fetch(`/api/firefighting/${id}?type=${type}`)
         .then((res) => res.json())
         .then((data) => {
           if (data.error) {
-            alert(data.error);
+            setError(data.error);
           } else {
             setFormData({
               ...data,
-              firefighterId: data.firefighterId?.toString() || '', // Ensure firefighter ID is a string
+              firefighterId: data.firefighterId?.toString() || '',
             });
           }
         })
         .catch((err) => {
           console.error('Failed to fetch data:', err);
-          alert('Failed to fetch record');
-        });
+          setError('Failed to fetch record');
+        })
+        .finally(() => setLoading(false));
     }
+
     // Fetch firefighters for the dropdown
     fetch('/api/users/filtered?roles=Technician&departments=FirefightingAlarm')
       .then((res) => res.json())
-      .then((data) => {
-        setFirefighters(data);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch firefighters:', err);
-      });
-  }, [id]);
+      .then((data) => setFirefighters(data))
+      .catch((err) => console.error('Failed to fetch firefighters:', err));
+  }, [id, type]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+  
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox' ? checked : value, // Handle checkboxes correctly
     }));
   };
+  
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
+    // Ensure at least one field is being updated
+    if (!formData.firefighterName) {
+      alert('Please select a firefighter.');
+      return;
+    }
+  
     const updatedData = {
-      firefighterId: parseInt(formData.firefighterId, 10), // Ensure it's an integer
-      addressableSmokeStatus: Boolean(formData.addressableSmokeStatus),
-      fireAlarmingSystemStatus: Boolean(formData.fireAlarmingSystemStatus),
-      dieselEnginePumpStatus: Boolean(formData.dieselEnginePumpStatus),
-      fireextinguisherStatus: Boolean(formData.fireextinguisherStatus),
-      wetRisersStatus: Boolean(formData.wetRisersStatus),
-      hoseReelCabinetsStatus: Boolean(formData.hoseReelCabinetsStatus),
-      externalHydrantsStatus: Boolean(formData.externalHydrantsStatus),
-      waterStorageTanksStatus: Boolean(formData.waterStorageTanksStatus),
-      emergencyLightsStatus: Boolean(formData.emergencyLightsStatus),
+      firefighterName: formData.firefighterName, // Send as name, not ID
       remarks: formData.remarks || '',
+      addressableSmokeStatus: formData.addressableSmokeStatus ?? false,
+      fireAlarmingSystemStatus: formData.fireAlarmingSystemStatus ?? false,
+      dieselEnginePumpStatus: formData.dieselEnginePumpStatus ?? false,
+      wetRisersStatus: formData.wetRisersStatus ?? false,
+      hoseReelCabinetsStatus: formData.hoseReelCabinetsStatus ?? false,
+      externalHydrantsStatus: formData.externalHydrantsStatus ?? false,
+      waterStorageTanksStatus: formData.waterStorageTanksStatus ?? false,
+      emergencyLightsStatus: formData.emergencyLightsStatus ?? false,
     };
-    
-
+  
     try {
-      const response = await fetch(`/api/firefighting/${id}`, {
+      const response = await fetch(`/api/firefighting/${id}?type=${type}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData),
       });
-
+  
       if (response.ok) {
         alert('Record updated successfully!');
-        router.push('/daily-maintenance/firefighting');
+        router.push(`/daily-maintenance/firefighting?type=${type}`);
       } else {
         const errorData = await response.json();
         alert(errorData.error || 'Failed to update record');
@@ -101,57 +116,65 @@ const EditFireFighting = () => {
       alert('Error updating record');
     }
   };
+  
+
+  if (loading) return <div className="text-center text-gray-600 py-6">Loading record...</div>;
+  if (error) return <div className="text-center text-red-600 py-6">{error}</div>;
 
   return (
     <Layout>
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-6">Edit Firefighting Record</h1>
+        <h1 className="text-2xl font-semibold text-center text-gray-800 mb-6">
+          {type === 'fireFighting' ? 'Edit Fire Fighting Record' : 'Edit Fire Fighting Alarm Record'}
+        </h1>
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Date Field */}
-<div className="flex flex-col">
-  <label className="font-medium text-gray-700">Date:</label>
-  <input
-    type="text"
-    name="date"
-    value={`${new Date(formData.date).toLocaleDateString('en-GB')} Time: ${String(new Date(formData.date).getHours()).padStart(2, '0')}:${String(new Date(formData.date).getMinutes()).padStart(2, '0')}:${String(new Date(formData.date).getSeconds()).padStart(2, '0')}`} // Format the date and time
-    disabled
-    className="mt-2 p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
-  />
-</div>
-
+          <div className="flex flex-col">
+            <label className="font-medium text-gray-700">Date:</label>
+            <input
+              type="text"
+              name="date"
+              value={new Date(formData.date).toLocaleString('en-GB')}
+              disabled
+              className="mt-2 p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-600 cursor-not-allowed"
+            />
+          </div>
 
           {/* Firefighter Dropdown */}
-          <div className="flex flex-col">
-            <label className="font-medium text-gray-700">Firefighter Name:</label>
-            <select
-              name="firefighterId"
-              value={formData.firefighterId}
-              onChange={handleChange}
-              required
-              className="mt-2 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Select Firefighter</option>
-              {firefighters.map((firefighter) => (
-                <option key={firefighter.id} value={firefighter.id.toString()}>
-                  {firefighter.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="flex flex-col">
+              <label className="font-medium text-gray-700">Firefighter Name:</label>
+              <select
+                name="firefighterName"
+                value={formData.firefighterName} // Pre-populate from stored value
+                onChange={handleChange}
+                required
+                className="mt-2 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">Select Firefighter</option>
+                {firefighters.map((firefighter) => (
+                  <option key={firefighter.id} value={firefighter.name}>
+                    {firefighter.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+
 
           {/* Status Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4">
-            {[
-              ['Addressable Smoke Status', 'addressableSmokeStatus'],
-              ['Fire Alarming System Status', 'fireAlarmingSystemStatus'],
-              ['Diesel Engine Firefighting Pump Status', 'dieselEnginePumpStatus'],
-              ['Fire Extinguisher Status', 'fireextinguisherStatus'],
-              ['Wet Risers Status', 'wetRisersStatus'],
-              ['Hose Reel Cabinets Status', 'hoseReelCabinetsStatus'],
-              ['External Hydrants Status', 'externalHydrantsStatus'],
-              ['Water Storage Tanks Status', 'waterStorageTanksStatus'],
-              ['Emergency Lights Status', 'emergencyLightsStatus'],
-            ].map(([label, field]) => (
+            {(type === 'fireFighting' ? [
+              ['Addressable Smoke', 'addressableSmokeStatus'],
+              ['Fire Alarming System', 'fireAlarmingSystemStatus'],
+            ] : [
+              ['Diesel Engine Fire Pump', 'dieselEnginePumpStatus'],
+              ['Wet Risers', 'wetRisersStatus'],
+              ['Hose Reel Cabinets', 'hoseReelCabinetsStatus'],
+              ['External Hydrants', 'externalHydrantsStatus'],
+              ['Water Storage Tanks', 'waterStorageTanksStatus'],
+              ['Emergency Lights', 'emergencyLightsStatus'],
+            ]).map(([label, field]) => (
               <div key={field} className="flex items-center">
                 <label className="w-2/3 text-gray-700">{label}:</label>
                 <input

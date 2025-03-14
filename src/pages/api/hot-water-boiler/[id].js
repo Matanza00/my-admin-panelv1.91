@@ -19,23 +19,27 @@ export default async function handler(req, res) {
       }
 
       // Fetch operator and supervisor names (assuming a `User` table)
-      let operatorName = 'Unknown';
-      if (boiler.OperatorName && !isNaN(boiler.OperatorName)) {
-        const operator = await prisma.user.findUnique({
-          where: { id: parseInt(boiler.OperatorName) },
-          select: { name: true },
-        });
-        operatorName = operator?.name || 'Unknown';
-      }
+      // Fetch operator and supervisor names (support both ID and Name)
+let operatorName = boiler.OperatorName || 'Unknown';
+if (!isNaN(Number(boiler.OperatorName))) {
+  // If OperatorName is an ID, fetch the name
+  const operator = await prisma.user.findUnique({
+    where: { id: parseInt(boiler.OperatorName) },
+    select: { name: true },
+  });
+  operatorName = operator?.name || 'Unknown';
+}
 
-      let supervisorName = 'Unknown';
-      if (boiler.SupervisorName && !isNaN(boiler.SupervisorName)) {
-        const supervisor = await prisma.user.findUnique({
-          where: { id: parseInt(boiler.SupervisorName) },
-          select: { name: true },
-        });
-        supervisorName = supervisor?.name || 'Unknown';
-      }
+let supervisorName = boiler.SupervisorName || 'Unknown';
+if (!isNaN(Number(boiler.SupervisorName))) {
+  // If SupervisorName is an ID, fetch the name
+  const supervisor = await prisma.user.findUnique({
+    where: { id: parseInt(boiler.SupervisorName) },
+    select: { name: true },
+  });
+  supervisorName = supervisor?.name || 'Unknown';
+}
+
 
       // Construct the response
       const response = {

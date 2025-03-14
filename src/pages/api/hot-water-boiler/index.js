@@ -8,35 +8,89 @@ export default async function handler(req, res) {
   const { page = 1, operatorName, supervisorName, floorFrom, floorTo } = query;
 
   if (method === 'GET') {
-    const take = 10;  // Number of items per page
+    const take = 10;
+    const page = parseInt(req.query.page) || 1;
     const skip = (page - 1) * take;
 
     try {
-      // Construct filter conditions
-      const where = {};
-      if (operatorName) where.OperatorName = { contains: operatorName };
-      if (supervisorName) where.SupervisorName = { contains: supervisorName };
-      if (floorFrom) where.StartTime = { gte: new Date(floorFrom) };
-      if (floorTo) where.ShutdownTime = { lte: new Date(floorTo) };
+        // Extract query parameters safely
+        const operatorName = req.query.operatorName?.trim() || null;
+        const supervisorName = req.query.supervisorName?.trim() || null;
+        const floorFrom = req.query.floorFrom?.trim() || null;
+        const floorTo = req.query.floorTo?.trim() || null;
 
-      // Fetch filtered data and total count
-      const boilers = await prisma.hotWaterBoiler.findMany({
-        where,
-        take,
-        skip,
-      });
+        // Construct filter conditions
+        const where = {};
 
-      const totalCount = await prisma.hotWaterBoiler.count({ where });
+        if (operatorName) {
+            // If it's a number, assume it's an ID; otherwise, search by name
+            if (!isNaN(operatorName)) {
+                where.OperatorName = parseInt(operatorName);
+            } else {
+                where.OperatorName = { contains: operatorName, mode: "insensitive" };
+            }
+        }
 
-      // Determine if there are more pages
-      const nextPage = totalCount > page * take;
+        if (supervisorName) {
+            // Handle NULL values in SupervisorName
+            where.OR = [
+                { SupervisorName: { contains: supervisorName, mode: "insensitive" } },
+                { SupervisorName: null } // Prevent Prisma errors on NULL values
+            ];
+        }
 
-      return res.status(200).json({ data: boilers, nextPage });
+        if (floorFrom && !isNaN(new Date(floorFrom))) where.StartTime = { gte: new Date(floorFrom) };
+        if (floorTo && !isNaN(new Date(floorTo))) where.ShutdownTime = { lte: new Date(floorTo) };
+
+        console.log("✅ Generated WHERE Condition for Prisma:", where);
+
+        // Fetch filtered data
+        const boilers = await prisma.hotWaterBoiler.findMany({
+            where: Object.keys(where).length > 0 ? where : {},
+            take,
+            skip,
+            orderBy: { createdAt: 'desc' },
+        });
+
+        // Resolve operator and supervisor names
+        for (let boiler of boilers) {
+            // Resolve OperatorName
+            if (!isNaN(boiler.OperatorName)) {
+                const operator = await prisma.user.findUnique({
+                    where: { id: parseInt(boiler.OperatorName) },
+                    select: { name: true },
+                });
+                boiler.OperatorName = operator?.name || boiler.OperatorName;
+            }
+
+            // Resolve SupervisorName
+            if (!isNaN(boiler.SupervisorName)) {
+                const supervisor = await prisma.user.findUnique({
+                    where: { id: parseInt(boiler.SupervisorName) },
+                    select: { name: true },
+                });
+                boiler.SupervisorName = supervisor?.name || boiler.SupervisorName;
+            }
+        }
+
+        // Fetch total count
+        const totalCount = await prisma.hotWaterBoiler.count({
+            where: Object.keys(where).length > 0 ? where : {},
+        });
+
+        const nextPage = totalCount > page * take;
+
+        return res.status(200).json({ data: boilers, nextPage });
     } catch (error) {
-      console.error('Error fetching boilers:', error);
-      return res.status(500).json({ error: 'Error fetching boilers' });
+        console.error('❌ Error fetching boilers:', error);
+        return res.status(500).json({ error: 'Error fetching boilers' });
     }
-  }  if (method === 'POST') {
+}
+
+
+
+
+  if (method === 'POST') {
     const {
       StartTime,
       ShutdownTime,

@@ -72,109 +72,113 @@ export default function JanitorialReportPage({ initialData, nextPage, user }) {
   };
   const handleExport = async () => {
     const { from, to } = dateRange;
-  
+
     if (!from || !to) {
-      alert('Please select both "From" and "To" dates.');
-      return;
+        alert('Please select both "From" and "To" dates.');
+        return;
     }
-  
+
     // Fetch data from the Janitorial Report endpoint
     const res = await fetch(`/api/monthexport/janitorialreport?from=${from}&to=${to}`);
     if (!res.ok) {
-      console.error('Failed to fetch export data');
-      return;
+        console.error('Failed to fetch export data');
+        return;
     }
-  
+
     const data = await res.json();
-  
+    console.log("export", data);
+
     if (exportFormat === 'excel') {
-      const excelData = convertToExcelData(data);
-      exportToExcel(excelData);
+        const excelData = convertToExcelData(data);
+        exportToExcel(excelData);
     } else if (exportFormat === 'pdf') {
-      exportToPDF(data);
+        exportToPDF(data);
     }
-  };
-  
-  const convertToExcelData = (data) => {
-    const rows = data.map((report) => {
-      const subReports = report.subJanReport.map((sub) => ({
-        FloorNo: sub.floorNo,
-        Toilet: sub.toilet,
-        Lobby: sub.lobby,
-        Staircase: sub.staircase,
-      }));
-  
-      return {
-        ID: report.id,
-        Date: new Date(report.date).toLocaleDateString(),
-        Supervisor: report.supervisor,
-        Tenant: report.tenant,
-        Remarks: report.remarks,
-        SubReports: subReports.map(
-          (sub) =>
-            `Floor: ${sub.FloorNo}, Toilet: ${sub.Toilet}, Lobby: ${sub.Lobby}, Staircase: ${sub.Staircase}`
-        ).join('; '),
-      };
+};
+
+const convertToExcelData = (data) => {
+    let rows = [];
+
+    data.forEach((report) => {
+        // If multiple floors exist in a report, create multiple rows
+        report.subJanReport.forEach((sub, index) => {
+            rows.push({
+                ID: index === 0 ? report.id : '',  // Only show ID on the first row for readability
+                Date: index === 0 ? new Date(report.date).toLocaleDateString() : '',
+                Supervisor: index === 0 ? report.supervisor : '',
+                Tenant: index === 0 ? report.tenant : '',
+                Remarks: index === 0 ? report.remarks : '',
+                FloorNo: sub.floorNo,
+                Toilet: sub.toilet,
+                Lobby: sub.lobby,
+                Staircase: sub.staircase
+            });
+        });
     });
-  
+
     return rows;
-  };
-  
-  const exportToExcel = (excelData) => {
+};
+
+const exportToExcel = (excelData) => {
     const ws = XLSX.utils.json_to_sheet(excelData);
     const wb = XLSX.utils.book_new();
-  
-    // Set custom column widths (in characters)
+
+    // Set custom column widths
     const colWidths = [
-      { wpx: 80 },  // ID
-      { wpx: 120 }, // Date
-      { wpx: 100 }, // Supervisor
-      { wpx: 100 }, // Tenant
-      { wpx: 200 }, // Remarks
-      { wpx: 300 }, // SubReports
+        { wpx: 80 },  // ID
+        { wpx: 120 }, // Date
+        { wpx: 100 }, // Supervisor
+        { wpx: 150 }, // Tenant
+        { wpx: 200 }, // Remarks
+        { wpx: 80 },  // FloorNo
+        { wpx: 100 }, // Toilet
+        { wpx: 100 }, // Lobby
+        { wpx: 100 }, // Staircase
     ];
-  
-    // Set the column widths to the worksheet
+
     ws['!cols'] = colWidths;
-  
+
     XLSX.utils.book_append_sheet(wb, ws, 'Janitorial Reports');
     XLSX.writeFile(wb, 'janitorialreports.xlsx');
-  };
-  
-  const exportToPDF = (data) => {
+};
+
+const exportToPDF = (data) => {
     const doc = new jsPDF('landscape');
-  
+
     doc.text('Janitorial Report', 14, 10);
-  
-    // Add headers for the Janitorial Report data
+
     const headers = [
-      'ID', 'Date', 'Supervisor', 'Tenant', 'Remarks', 'SubReports'
+        'ID', 'Date', 'Supervisor', 'Tenant', 'Remarks', 'FloorNo', 'Toilet', 'Lobby', 'Staircase'
     ];
-  
-    // Create the table data for each janitorial report
-    const tableData = data.map((report) => [
-      report.id,
-      new Date(report.date).toLocaleDateString(),
-      report.supervisor,
-      report.tenant,
-      report.remarks,
-      report.subJanReport
-        .map(
-          (sub) =>
-            `Floor: ${sub.floorNo}, Toilet: ${sub.toilet}, Lobby: ${sub.lobby}, Staircase: ${sub.staircase}`
-        )
-        .join('; '),
-    ]);
-  
-    doc.autoTable({
-      head: [headers],
-      body: tableData,
-      startY: 20,
-      theme: 'striped',
+
+    const tableData = [];
+
+    data.forEach((report) => {
+        report.subJanReport.forEach((sub, index) => {
+            tableData.push([
+                index === 0 ? report.id : '',  // Only show ID on the first row for readability
+                index === 0 ? new Date(report.date).toLocaleDateString() : '',
+                index === 0 ? report.supervisor : '',
+                index === 0 ? report.tenant : '',
+                index === 0 ? report.remarks : '',
+                sub.floorNo,
+                sub.toilet,
+                sub.lobby,
+                sub.staircase
+            ]);
+        });
     });
-  
+
+    doc.autoTable({
+        head: [headers],
+        body: tableData,
+        startY: 20,
+        theme: 'striped',
+    });
+
     doc.save('janitorialreports.pdf');
-  };
+};
+
   const userRole = user?.role || "guest"; // Fallback if role is undefined
   console.log(data)
   

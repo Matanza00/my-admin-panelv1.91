@@ -132,7 +132,6 @@ const convertToExcelData = (data) => {
       Date: new Date(chart.date).toLocaleDateString(),
       Supervisor: chart.supervisor,
       Remarks: chart.remarks,
-      Picture: chart.picture || 'N/A',
       Attendance: attendanceDetails
         .map(
           (att) =>
@@ -155,7 +154,6 @@ const exportToExcel = (excelData) => {
     { wpx: 120 }, // Date
     { wpx: 100 }, // Supervisor
     { wpx: 200 }, // Remarks
-    { wpx: 250 }, // Picture
     { wpx: 400 }, // Attendance
   ];
 
@@ -173,7 +171,7 @@ const exportToPDF = (data) => {
 
   // Add headers for the Duty Chart data
   const headers = [
-    'ID', 'Date', 'Supervisor', 'Remarks', 'Picture', 'Attendance'
+    'ID', 'Date', 'Supervisor', 'Remarks',  'Attendance'
   ];
 
   // Create the table data for each duty chart
@@ -182,7 +180,6 @@ const exportToPDF = (data) => {
     new Date(chart.date).toLocaleDateString(),
     chart.supervisor,
     chart.remarks,
-    chart.picture || 'N/A',
     chart.attendance
       .map(
         (att) =>

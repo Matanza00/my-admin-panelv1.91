@@ -229,6 +229,7 @@ model FCUReport {
   supervisorApproval Boolean
   engineerApproval   Boolean
   floorFCs           FloorFC[] // Define the one-to-many relation with FloorFC
+
 }
 
 model FloorFC {
@@ -386,6 +387,15 @@ model FireFighting {
   firefighterName          String
   addressableSmokeStatus   Boolean  @default(false)
   fireAlarmingSystemStatus Boolean  @default(false)
+  remarks                  String? // Optional remarks field
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+}
+model FireFightingAlarm {
+  id                       Int      @id @default(autoincrement())
+  date                     DateTime
+  firefighterName          String
   dieselEnginePumpStatus   Boolean  @default(false)
   wetRisersStatus          Boolean  @default(false)
   hoseReelCabinetsStatus   Boolean  @default(false)
@@ -393,6 +403,9 @@ model FireFighting {
   waterStorageTanksStatus  Boolean  @default(false)
   emergencyLightsStatus    Boolean  @default(false)
   remarks                  String? // Optional remarks field
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 }
 
 model Generator {

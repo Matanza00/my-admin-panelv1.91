@@ -24,8 +24,11 @@ const FCUReportDetailPage = ({ fcuReport }) => {
         <div className="mb-6">
           <h2 className="text-2xl font-medium text-gray-900">Report ID: {report.id}</h2>
           <p className="text-lg text-gray-600">
-  Date: {`${new Date(report.date).toLocaleDateString('en-GB')} Time: ${String(new Date(report.date).getHours()).padStart(2, '0')}:${String(new Date(report.date).getMinutes()).padStart(2, '0')}:${String(new Date(report.date).getSeconds()).padStart(2, '0')}`}
+ 
+  Date: {`${new Date(report.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })} 
+  Time: ${String(new Date(report.date).getHours()).padStart(2, '0')}:${String(new Date(report.date).getMinutes()).padStart(2, '0')}:${String(new Date(report.date).getSeconds()).padStart(2, '0')}`}
 </p>
+
 
           <p className="text-lg text-gray-600">Remarks: {report.remarks}</p>
         </div>

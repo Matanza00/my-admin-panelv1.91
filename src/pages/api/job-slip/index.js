@@ -36,56 +36,102 @@ export default async function handler(req, res) {
 
   switch (method) {
     case "GET":
-      try {
-        // ✅ Extract filters & pagination params
-        const {
-          page = 1,
-          jobId,
-          complainNo,
-          complainBy,
-          attendedBy,
-          floorNo,
-          status,
-          dateFrom,
-          dateTo,
-        } = req.query;
+  try {
+    console.log("🔹 Incoming Request:", req.query);
 
-        const limit = 10;
-        const offset = (page - 1) * limit;
+    const {
+      page = 1,
+      jobId,
+      complainNo,
+      complainBy,
+      attendedBy,
+      floorNo,
+      status,
+      dateFrom,
+      dateTo,
+    } = req.query;
 
-        const where = {}; // Filter object
+    const limit = 10;
+    const offset = (page - 1) * limit;
 
-        // ✅ Allow Partial Matching for Filtering
-        if (jobId) where.jobId = { contains: jobId };
-        if (complainNo) where.complainNo = { contains: complainNo };
-        if (complainBy) where.complainBy = { contains: complainBy };
-        if (attendedBy) where.attendedBy = { contains: attendedBy };
-        if (floorNo) where.floorNo = { contains: floorNo };
-        if (status) where.status = { equals: status };
-        if (dateFrom) where.date = { gte: new Date(dateFrom) };
-        if (dateTo) where.date = { lte: new Date(dateTo) };
+    const where = {};
 
-        console.log("🔍 Applied Filters:", where);
+    if (jobId) where.jobId = { contains: jobId };
+    if (complainNo) where.complainNo = { contains: complainNo };
+    if (complainBy) where.complainBy = { contains: complainBy };
+    if (floorNo) where.floorNo = { contains: floorNo };
+    if (status) where.status = { equals: status };
+    if (dateFrom) where.date = { gte: new Date(dateFrom) };
+    if (dateTo) where.date = { lte: new Date(dateTo) };
 
-        // 🔹 Fetch filtered job slips
-        const jobSlips = await prisma.jobSlip.findMany({
-          where,
-          skip: offset,
-          take: limit,
-          orderBy: { date: "desc" },
-        });
+    // ✅ Step 1: Fetch User IDs Matching `attendedBy` (Case-Insensitive)
+    let attendedByUserIds = [];
+    if (attendedBy) {
+      const matchedUsers = await prisma.$queryRaw`
+        SELECT id FROM User WHERE LOWER(name) LIKE LOWER(${`%${attendedBy}%`})
+      `;
 
-        // 🔹 Count total results for pagination
-        const totalCount = await prisma.jobSlip.count({ where });
-
-        const nextPage = totalCount > offset + limit;
-
-        res.status(200).json({ data: jobSlips, nextPage });
-      } catch (error) {
-        console.error("❌ Error fetching job slips:", error);
-        res.status(500).json({ error: "An error occurred while fetching job slips" });
+      attendedByUserIds = matchedUsers.map(user => String(user.id)); // ✅ Convert IDs to String
+      if (attendedByUserIds.length > 0) {
+        where.attendedBy = { in: attendedByUserIds }; // ✅ Ensure String IDs
       }
-      break;
+    }
+
+    console.log("🔍 Applied Filters:", where);
+
+    // ✅ Step 2: Fetch job slips matching `attendedBy` IDs
+    const jobSlips = await prisma.jobSlip.findMany({
+      where,
+      skip: offset,
+      take: limit,
+      orderBy: { date: "desc" },
+    });
+
+    // ✅ Step 3: Fetch `attendedBy` name and `department` name for each job slip
+    const jobSlipsWithDetails = await Promise.all(
+      jobSlips.map(async (jobSlip) => {
+        let attendedByName = "N/A";
+        let departmentName = "N/A";
+
+        // Fetch Attended By User Name
+        if (jobSlip.attendedBy) {
+          const attendedUser = await prisma.user.findUnique({
+            where: { id: Number(jobSlip.attendedBy) },
+            select: { name: true },
+          });
+          if (attendedUser) attendedByName = attendedUser.name;
+        }
+
+        // Fetch Department Name
+        if (jobSlip.department) {
+          const department = await prisma.department.findUnique({
+            where: { id: Number(jobSlip.department) },
+            select: { name: true },
+          });
+          if (department) departmentName = department.name;
+        }
+
+        return {
+          ...jobSlip,
+          attendedBy: attendedByName, // Replace ID with Name
+          department: departmentName, // Replace ID with Name
+        };
+      })
+    );
+
+    const totalCount = await prisma.jobSlip.count({ where });
+
+    const nextPage = totalCount > offset + limit;
+
+    console.log("✅ Job slips fetched successfully:", jobSlipsWithDetails.length, "results");
+
+    res.status(200).json({ data: jobSlipsWithDetails, nextPage });
+  } catch (error) {
+    console.error("❌ Error fetching job slips:", error.message);
+    console.error(error);
+    res.status(500).json({ error: "An error occurred while fetching job slips", details: error.message });
+  }
+  break;
 
 
       case "POST":

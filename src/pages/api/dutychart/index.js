@@ -73,6 +73,7 @@ export default async function handler(req, res) {
             where: filters,
             skip: offset,
             take: pageSize,
+            orderBy: { createdAt: 'desc' },
             include: {
                 attendance: true, // Ensure attendance is always included
             },
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
                   const supervisors = await prisma.user.findMany({
                       where: { id: { in: supervisorIds } }, // Pass only numeric IDs
                       select: { id: true, name: true }, // Fetch only ID and Name
+                      
                   });
 
                   console.log("✅ Fetched Supervisors from DB:", JSON.stringify(supervisors, null, 2));

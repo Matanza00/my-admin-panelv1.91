@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { HiEye, HiOutlinePencil, HiOutlineTrash, HiFilter } from 'react-icons/hi';
 import Layout from '../../../components/layout';
 
-// import * as XLSX from 'xlsx';
-// import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { HiOutlineX } from 'react-icons/hi';
 
@@ -71,6 +71,160 @@ export default function JanitorialAttendancePage({ initialData, nextPage }) {
       [name]: value,
     }));
   };
+
+  const handleExport = async () => {
+    const { from, to } = dateRange;
+  
+    if (!from || !to) {
+      alert('Please select both "From" and "To" dates.');
+      return;
+    }
+  
+    // Fetch data from the Duty Chart endpoint
+    const res = await fetch(`/api/monthexport/janitorialattendance?from=${from}&to=${to}`);
+    if (!res.ok) {
+      console.error('Failed to fetch export data');
+      return;
+    }
+  
+    const data = await res.json();
+    console.log("first Data : " , data);
+  
+    if (exportFormat === 'excel') {
+      const excelData = convertToExcelData(data);
+      exportToExcel(excelData);
+    } else if (exportFormat === 'pdf') {
+      exportToPDF(data);
+    }
+  };
+  const convertToExcelData = (data) => {
+    let rows = [];
+  
+    data.forEach((chart) => {
+      // ✅ Add Chart Metadata FIRST (Date, Supervisor, etc.)
+      rows.push({
+        ID: chart.id,
+        Date: new Date(chart.date).toLocaleDateString(),
+        Supervisor: chart.supervisor,  // Ensure this is the name, not ID
+        Remarks: chart.remarks,
+        TotalJanitors: chart.totalJanitors,
+        Strength: chart.strength,
+        Name: "", // Leave empty so janitors come below
+        Absent: "",
+        Recorded: "",
+      });
+  
+      // ✅ Convert janitor absences into row format (Name, Absent, Record) BELOW the chart metadata
+      chart.janitorAbsences.forEach((janitor) => {
+        rows.push({
+          ID: "", // Leave empty
+          Date: "",
+          Supervisor: "",
+          Remarks: "",
+          TotalJanitors: "",
+          Strength: "",
+          Name: janitor.name,
+          Absent: janitor.isAbsent ? "Yes" : "No",
+          Recorded: new Date(janitor.createdAt).toLocaleString(),
+        });
+      });
+  
+      // ✅ Add an empty row as a separator for readability
+      rows.push({
+        ID: "",
+        Date: "",
+        Supervisor: "",
+        Remarks: "",
+        TotalJanitors: "",
+        Strength: "",
+        Name: "",
+        Absent: "",
+        Recorded: "",
+      });
+    });
+  
+    return rows;
+  };
+  
+  
+  
+  
+  const exportToExcel = (excelData) => {
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+  
+    // Define custom column widths
+    const colWidths = [
+      { wpx: 80 },  // ID
+      { wpx: 120 }, // Date
+      { wpx: 120 }, // Supervisor
+      { wpx: 200 }, // Remarks
+      { wpx: 100 }, // Total Janitors
+      { wpx: 100 }, // Strength
+      { wpx: 150 }, // Name
+      { wpx: 80 },  // Absent
+      { wpx: 180 }, // Recorded
+    ];
+  
+    ws["!cols"] = colWidths;
+  
+    XLSX.utils.book_append_sheet(wb, ws, "Janitorial Attendance");
+    XLSX.writeFile(wb, "janitorialAttendance.xlsx");
+  };
+  
+  
+  
+  
+  const exportToPDF = (data) => {
+    const doc = new jsPDF("landscape");
+  
+    doc.text("Janitorial Attendance Report", 14, 10);
+  
+    // Define table headers
+    const headers = [
+      "ID", "Date", "Supervisor", "Remarks", "Total Janitors", "Strength",
+      "Name", "Absent", "Recorded"
+    ];
+  
+    let tableData = [];
+  
+    data.forEach((chart) => {
+      // ✅ Add chart metadata (Appears first)
+      tableData.push([
+        chart.id,
+        new Date(chart.date).toLocaleDateString(),
+        chart.supervisor,
+        chart.remarks,
+        chart.totalJanitors,
+        chart.strength,
+        "", "", "" // Empty placeholders for janitor data
+      ]);
+  
+      // ✅ Add janitor absences (Below chart metadata)
+      chart.janitorAbsences.forEach((janitor) => {
+        tableData.push([
+          "", "", "", "", "", "",
+          janitor.name,
+          janitor.isAbsent ? "Yes" : "No",
+          new Date(janitor.createdAt).toLocaleString()
+        ]);
+      });
+  
+      // ✅ Add an empty row for spacing
+      tableData.push(["", "", "", "", "", "", "", "", ""]);
+    });
+  
+    doc.autoTable({
+      head: [headers],
+      body: tableData,
+      startY: 20,
+      theme: "striped",
+    });
+  
+    doc.save("janitorialAttendance.pdf");
+  };  
+  
+  
 
   return (
     <Layout>

@@ -21,7 +21,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: "Invalid date format provided." });
         }
 
-        console.log(`Filtering from ${fromDate} to ${toDate} with status: ${status || "all"}`); // Log the filters for debugging
+        console.log(`Filtering from ${fromDate} to ${toDate} with status: ${status || "all"}`);
 
         // Build the where clause dynamically based on the presence of 'status'
         const whereClause = {
@@ -35,30 +35,43 @@ export default async function handler(req, res) {
           whereClause.status = status;
         }
 
-        // Fetch FeedbackComplain records within the date range and status
+        // ✅ Fetch Feedback Complaints & Include Tenant Data
         const feedbackComplaints = await prisma.feedbackComplain.findMany({
           where: whereClause,
           orderBy: {
-            date: 'asc', // Order by date to ensure correct ordering
+            date: "asc",
+          },
+          include: {
+            tenant: {
+              select: {
+                id: true,
+                tenantName: true, // ✅ Correct field name
+              },
+            },
+            jobSlips: {
+              select: {
+                id: true,
+              },
+            },
           },
         });
 
-        console.log(`Found ${feedbackComplaints.length} feedback complaints`); // Log how many complaints were found
+        console.log(`Found ${feedbackComplaints.length} feedback complaints`);
 
         // If no data is found
         if (!feedbackComplaints || feedbackComplaints.length === 0) {
           return res.status(404).json({ message: "No data found." });
         }
 
-        // Map the complaints and their job slips
+        // ✅ Map & Ensure Proper Tenant Display
         const updatedFeedbackComplaints = feedbackComplaints.map((complaint) => ({
           ...complaint,
           tenant: complaint.tenant
             ? {
                 id: complaint.tenant.id,
-                name: complaint.tenant.name, // Assuming tenant has name field
+                tenantName: complaint.tenant.tenantName, // ✅ Ensure correct field
               }
-            : null,
+            : { id: null, tenantName: "Unknown Tenant" }, // ✅ Handle missing tenant
         }));
 
         // Return the updated data

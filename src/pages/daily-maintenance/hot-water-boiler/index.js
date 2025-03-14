@@ -28,23 +28,75 @@ export default function HotWaterBoilerPage({ initialData, nextPage }) {
   };
 
   const applyFilters = async () => {
-    const query = new URLSearchParams({ page, ...filters }).toString();
-    const res = await fetch(`/api/hot-water-boiler?${query}`);
-    const { data: newData, nextPage } = await res.json();
-
-    setData(newData);
-    setHasMore(nextPage);
+    console.log("Applying Filters:", filters); // Debugging: Log filters
+  
+    // Create a filtered object excluding empty values
+    const filteredFilters = Object.fromEntries(
+      Object.entries({ page, ...filters }).filter(([_, value]) => 
+        value !== undefined && value !== null && value.toString().trim() !== ""
+      )
+    );
+  
+    const query = new URLSearchParams(filteredFilters).toString();
+    console.log("Generated Query:", query); // Debugging: Log query
+  
+    if (!query) {
+      console.warn("No valid filters applied. Skipping API request.");
+      return; // Skip request if no valid filters
+    }
+  
+    try {
+      const res = await fetch(`/api/hot-water-boiler?${query}`);
+      if (!res.ok) {
+        throw new Error("Failed to fetch data");
+      }
+  
+      const { data: newData, nextPage } = await res.json();
+      console.log("Fetched Data:", newData); // Debugging: Log response data
+  
+      setData(newData);
+      setHasMore(nextPage);
+    } catch (error) {
+      console.error("Error fetching filtered data:", error);
+    }
   };
-
+  
   const loadMoreData = async () => {
-    const query = new URLSearchParams({ page: page + 1, ...filters }).toString();
-    const res = await fetch(`/api/hot-water-boiler?${query}`);
-    const { data: newData, nextPage } = await res.json();
-
-    setData((prevData) => [...prevData, ...newData]);
-    setPage(page + 1);
-    setHasMore(nextPage);
+    console.log("Loading More Data...");
+  
+    const filteredFilters = Object.fromEntries(
+      Object.entries({ page: page + 1, ...filters }).filter(([_, value]) => 
+        value !== undefined && value !== null && value.toString().trim() !== ""
+      )
+    );
+  
+    const query = new URLSearchParams(filteredFilters).toString();
+    console.log("Generated Query for Load More:", query);
+  
+    if (!query) {
+      console.warn("No valid filters applied for Load More. Skipping API request.");
+      return;
+    }
+  
+    try {
+      const res = await fetch(`/api/hot-water-boiler?${query}`);
+      if (!res.ok) {
+        throw new Error("Failed to fetch more data");
+      }
+  
+      const { data: newData, nextPage } = await res.json();
+      console.log("Fetched More Data:", newData);
+  
+      setData((prevData) => [...prevData, ...newData]);
+      setPage(page + 1);
+      setHasMore(nextPage);
+    } catch (error) {
+      console.error("Error fetching more data:", error);
+    }
   };
+  
+  
+  
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState({
@@ -241,8 +293,8 @@ export default function HotWaterBoilerPage({ initialData, nextPage }) {
 
 
         {/* Filters */}
-        <div className="mb-6">
-          <div className="flex space-x-4">
+       {/* <div className="mb-6">
+           <div className="flex space-x-4">
             <input
               type="text"
               name="operatorName"
@@ -251,14 +303,14 @@ export default function HotWaterBoilerPage({ initialData, nextPage }) {
               placeholder="Operator Name"
               className="px-4 py-2 border rounded-md"
             />
-            <input
+             <input
               type="text"
               name="supervisorName"
               value={filters.supervisorName}
               onChange={handleFilterChange}
               placeholder="Supervisor Name"
               className="px-4 py-2 border rounded-md"
-            />
+            /> *
             <input
               type="text"
               name="floorFrom"
@@ -282,7 +334,7 @@ export default function HotWaterBoilerPage({ initialData, nextPage }) {
               Apply Filters
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Hot Water Boiler Reports Card Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">

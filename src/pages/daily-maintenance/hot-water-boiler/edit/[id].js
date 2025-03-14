@@ -148,40 +148,52 @@ const EditBoilerForm = () => {
               />
             </div>
           ))}
-          <div className="flex flex-col">
-            <label className="text-white mb-1">Operator Name</label>
-            <select
-              name="OperatorName"
-              value={formData.OperatorName}
-              onChange={handleChange}
-              className="px-4 py-2 rounded-md bg-gray-800 text-white"
-              required
-            >
-              <option value="">{formData.OperatorName}</option>
-              {technicians.map((tech) => (
-                <option key={tech.id} value={tech.id}>
-                  {tech.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col">
-            <label className="text-white mb-1">Supervisor Name</label>
-            <select
-              name="SupervisorName"
-              value={formData.SupervisorName}
-              onChange={handleChange}
-              className="px-4 py-2 rounded-md bg-gray-800 text-white"
-              required
-            >
-              <option value="">{formData.SupervisorName}</option>
-              {supervisors.map((sup) => (
-                <option key={sup.id} value={sup.id}>
-                  {sup.name}
-                </option>
-              ))}
-            </select>
-          </div>
+         <div>
+  <label htmlFor="OperatorName" className="block text-sm font-medium text-gray-700">
+    Operator Name
+  </label>
+  <select
+    id="OperatorName"
+    name="OperatorName"
+    value={formData.OperatorName}
+    onChange={handleChange}
+    required
+    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-800 text-white p-2"
+  >
+    <option value="" disabled>
+      Select Operator
+    </option>
+    {technicians.map((tech) => (
+      <option key={tech.id} value={tech.name}>
+        {tech.name}
+      </option>
+    ))}
+  </select>
+</div>
+
+<div>
+  <label htmlFor="SupervisorName" className="block text-sm font-medium text-gray-700">
+    Supervisor Name
+  </label>
+  <select
+    id="SupervisorName"
+    name="SupervisorName"
+    value={formData.SupervisorName}
+    onChange={handleChange}
+    required
+    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm bg-gray-800 text-white p-2"
+  >
+    <option value="" disabled>
+      Select Supervisor
+    </option>
+    {supervisors.map((sup) => (
+      <option key={sup.id} value={sup.name}>
+        {sup.name}
+      </option>
+    ))}
+  </select>
+</div>
+
           <div className="flex flex-col">
             <label className="text-white mb-1">Remarks</label>
             <textarea

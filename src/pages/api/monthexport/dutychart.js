@@ -33,7 +33,7 @@ export default async function handler(req, res) {
           },
 
           orderBy: {
-            date: 'asc', // Order by date to ensure correct ordering
+            date: "asc",
           },
 
           include: {
@@ -41,15 +41,40 @@ export default async function handler(req, res) {
           },
         });
 
-        console.log(`Found ${dutyCharts.length} duty charts`); // Log how many records were found
+        console.log(`Found ${dutyCharts.length} duty charts`);
 
         // If no data is found
         if (!dutyCharts || dutyCharts.length === 0) {
           return res.status(404).json({ message: "No data found." });
         }
 
-        // Return the fetched data
-        return res.status(200).json(dutyCharts);
+        // ✅ Fetch Supervisor Names
+        const updatedDutyCharts = await Promise.all(
+          dutyCharts.map(async (dutyChart) => {
+            let supervisorName = "N/A";
+
+            try {
+              // Ensure supervisor ID exists before querying
+              if (dutyChart.supervisor && !isNaN(dutyChart.supervisor)) {
+                const supervisor = await prisma.user.findUnique({
+                  where: { id: Number(dutyChart.supervisor) },
+                  select: { name: true },
+                });
+                supervisorName = supervisor?.name ?? "N/A"; // Handle null values safely
+              }
+            } catch (error) {
+              console.error(`Error fetching supervisor (${dutyChart.supervisor}):`, error);
+            }
+
+            return {
+              ...dutyChart,
+              supervisor: supervisorName, // Replace ID with Name
+            };
+          })
+        );
+
+        // Return the fetched data with updated supervisor names
+        return res.status(200).json(updatedDutyCharts);
       } catch (error) {
         console.error("Error fetching data:", error);
         return res.status(500).json({ error: "Internal server error" });

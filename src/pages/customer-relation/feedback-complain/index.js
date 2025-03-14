@@ -128,6 +128,7 @@ useEffect(() => {
     }
   
     const data = await res.json();
+    console.log("🔹 export data : ",data)
   
     if (exportFormat === 'excel') {
       const excelData = convertToExcelData(data);
@@ -146,14 +147,14 @@ useEffect(() => {
       FloorNo: feedback.floorNo,
       Area: feedback.area,
       Location: feedback.location,
+      Locations: feedback.locations,
       Services: feedback.listServices,
       MaterialRequired: feedback.materialReq,
       ActionTaken: feedback.actionTaken,
       AttendedBy: feedback.attendedBy,
       Remarks: feedback.remarks,
       Status: feedback.status,
-      ComplainBy: feedback.complainBy || 'N/A',
-      Tenant: feedback.tenant ? feedback.tenant.name : 'N/A',  // Default to 'N/A' if tenant is null
+      Tenant: feedback.tenant && feedback.tenant.tenantName ? feedback.tenant.tenantName : 'N/A',
     }));
   
     return rows;
@@ -170,14 +171,14 @@ useEffect(() => {
       { wpx: 120 }, // Date
       { wpx: 100 }, // Floor No
       { wpx: 100 }, // Area
-      { wpx: 100 }, // Location
+      { wpx: 50 }, // Location
+      { wpx: 150 }, // Locations
       { wpx: 150 }, // Services
       { wpx: 200 }, // Material Required
       { wpx: 200 }, // Action Taken
       { wpx: 150 }, // Attended By
       { wpx: 250 }, // Remarks
       { wpx: 100 }, // Status
-      { wpx: 150 }, // Complain By
       { wpx: 150 }, // Tenant
     ];
   
@@ -195,8 +196,8 @@ useEffect(() => {
   
     // Add headers for the Feedback data
     const headers = [
-      'ID', 'Complain No', 'Date', 'Floor No', 'Area', 'Location', 'Services', 
-      'Material Required', 'Action Taken', 'Attended By', 'Remarks', 'Status', 'Complain By', 'Tenant'
+      'ID', 'Complain No', 'Date', 'Floor No', 'Area', 'Location', 'Locations', 'Services', 
+      'Material Required', 'Action Taken', 'Attended By', 'Remarks', 'Status',  'Tenant'
     ];
   
     // Create the table data for each feedback report
@@ -207,14 +208,14 @@ useEffect(() => {
       feedback.floorNo,
       feedback.area,
       feedback.location,
+      feedback.locations,
       feedback.listServices,
       feedback.materialReq,
       feedback.actionTaken,
       feedback.attendedBy,
       feedback.remarks,
       feedback.status,
-      feedback.complainBy || 'N/A',
-      feedback.tenant ? feedback.tenant.name : 'N/A',  // Default to 'N/A' if tenant is null
+      feedback.tenant && feedback.tenant.tenantName ? feedback.tenant.tenantName : 'N/A',  // Default to 'N/A' if tenant is null
     ]);
   
     doc.autoTable({
@@ -368,70 +369,81 @@ useEffect(() => {
         </button>
 
         {/* Collapsible Filter Section */}
-        {isFilterOpen && (
-          <div className="bg-gray-800 text-white p-6 rounded-lg mb-4">
-            <h2 className="font-semibold mb-4">Filters</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {/* Complain No */}
-              <input
-                type="text"
-                placeholder="Complain No"
-                name="complainNo"
-                value={filters.complainNo}
-                onChange={handleFilterChange}
-                className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
-              />
+{isFilterOpen && (
+  <div className="bg-gray-800 text-white p-6 rounded-lg mb-4">
+    <h2 className="font-semibold mb-4">Filters</h2>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {/* Complain No */}
+      <input
+        type="text"
+        placeholder="Complain No"
+        name="complainNo"
+        value={filters.complainNo}
+        onChange={handleFilterChange}
+        className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
+      />
 
-              {/* Date Range */}
-              <input
-                type="date"
-                placeholder="Date From"
-                name="dateFrom"
-                value={filters.dateFrom}
-                onChange={handleFilterChange}
-                className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
-              />
-              <input
-                type="date"
-                placeholder="Date To"
-                name="dateTo"
-                value={filters.dateTo}
-                onChange={handleFilterChange}
-                className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
-              />
+      {/* Date Range */}
+      <input
+        type="date"
+        placeholder="Date From"
+        name="dateFrom"
+        value={filters.dateFrom}
+        onChange={handleFilterChange}
+        className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
+      />
+      <input
+        type="date"
+        placeholder="Date To"
+        name="dateTo"
+        value={filters.dateTo}
+        onChange={handleFilterChange}
+        className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
+      />
 
-              {/* attended By */}
-              <input
-                type="text"
-                placeholder="attended By"
-                name="attendedBy"
-                value={filters.attendedBy}
-                onChange={handleFilterChange}
-                className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
-              />
+      {/* attended By */}
+      <input
+        type="text"
+        placeholder="Attended By"
+        name="attendedBy"
+        value={filters.attendedBy}
+        onChange={handleFilterChange}
+        className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
+      />
 
-              
-              {/* Status Dropdown */}
-              <select
-                name="status"
-                value={filters.status}
-                onChange={handleFilterChange}
-                className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
-              >
-                <option value="">Select Status</option>
-                <option value="Pending">Pending</option>
-                <option value="In%20Progress">In Progress</option>
-                <option value="Resolved">Resolved</option>
-              </select>
-            </div>
-            <button
-              onClick={applyFilters}
-              className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-300"
-            >
-              Apply Filters
-            </button>
-          </div>
-        )}
+      {/* Status Dropdown */}
+      <select
+        name="status"
+        value={filters.status}
+        onChange={handleFilterChange}
+        className="border border-gray-600 bg-gray-700 rounded-lg p-2 text-white"
+      >
+        <option value="">Select Status</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Resolved">Resolved</option>
+      </select>
+    </div>
+
+    {/* Buttons: Apply & Clear Filters */}
+    <div className="flex gap-4 mt-4">
+      <button
+        onClick={applyFilters}
+        className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-300"
+      >
+        Apply Filters
+      </button>
+
+      <button
+        onClick={() => setFilters({ complainNo: "", dateFrom: "", dateTo: "", attendedBy: "", status: "" })}
+        className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-all duration-300"
+      >
+        Clear Filters
+      </button>
+    </div>
+  </div>
+)}
+
 
         {/* Add More Complain Button */}
         <div className="flex justify-start items-center space-x-4 mb-6 mt-4">

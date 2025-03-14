@@ -22,6 +22,7 @@ export default async function handler(req, res) {
       // Fetch FCU reports with related FloorFCs
       const fcuReports = await prisma.fCUReport.findMany({
         skip: (page - 1) * pageSize,
+        orderBy: { date: 'desc' },
         take: pageSize,
         where,
         include: {

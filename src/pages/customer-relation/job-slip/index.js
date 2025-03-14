@@ -109,7 +109,15 @@ const applyFilters = async () => {
   };
 
   if (!data || data.length === 0) {
-    return <Layout><div className="p-4">No data available</div></Layout>;
+    return <Layout><div className="p-4">No data available</div>
+    <button
+    onClick={() => window.location.reload()}
+    className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-all duration-300"
+  >
+    Back
+  </button>
+  </Layout>;
+    
   }
 
 
@@ -332,12 +340,32 @@ const applyFilters = async () => {
                 <option value="Verified & Closed">Verified & Closed</option>
               </select>
             </div>
-            <button
-  onClick={applyFilters} // Ensure this is correctly attached
-  className="mt-4 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-300"
->
-  Apply Filters
-</button>
+            {/* Buttons for Apply, Clear, and Back */}
+<div className="mt-4 flex gap-4">
+  <button
+    onClick={applyFilters}
+    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-all duration-300"
+  >
+    Apply Filters
+  </button>
+
+  <button
+    onClick={() => setFilters({ jobId: '', complainNo: '', attendedBy: '', dateFrom: '', dateTo: '', status: '' })}
+    className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-all duration-300"
+  >
+    Clear Filters
+  </button>
+
+  {!data.length && (
+    <button
+      onClick={() => window.location.reload()}
+      className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-all duration-300"
+    >
+      Back
+    </button>
+  )}
+</div>
+
 
           </div>
         )}
@@ -426,7 +454,7 @@ const applyFilters = async () => {
               <h2 className="text-lg font-semibold mb-2 text-gray-800">{item.jobId}</h2>
               <p className="text-gray-600 mb-1"><strong>Complain No:</strong> {item.complainNo}</p>
               <p className="text-gray-600 mb-1"><strong>Date:</strong> {new Date(item.date).toLocaleDateString()}</p>
-              <p className="text-gray-600 mb-1"><strong>Complain By:</strong> {item.complainBy}</p>
+              <p className="text-gray-600 mb-1"><strong>Attended By:</strong> {item.attendedBy}</p>
               <p className="text-gray-600 mb-1"><strong>Status:</strong> {item.status}</p>
 
               {/* Actions */}
@@ -517,38 +545,67 @@ export async function getServerSideProps(context) {
     },
   });
 
-  const serializedData = jobSlips.map((item) => ({
-    id: item.id,
-    date: item.date.toISOString(),
-    jobId: item.jobId,
-    complainNo: item.complainNo,
-    complainBy: item.complainBy || "N/A",
-    floorNo: item.floorNo,
-    area: item.area,
-    inventoryRecieptNo: item.inventoryRecieptNo || "N/A",
-    location: item.location,
-    complaintDesc: item.complaintDesc,
-    materialReq: item.materialReq,
-    actionTaken: item.actionTaken,
-    attendedBy: item.attendedBy,
-    department: item.department,
-    remarks: item.remarks,
-    completed_At: item.completed_At ? item.completed_At.toISOString() : null,
-    status: item.status,
-    supervisorApproval: item.supervisorApproval,
-    managementApproval: item.managementApproval,
-    createdAt: item.createdAt.toISOString(),
-    updatedAt: item.updatedAt.toISOString(),
-    picture: item.picture ? item.picture.split(",") : [], // Convert stored string URLs into an array
-    tenant: item.feedbackComplain?.tenant?.tenantName || "N/A",
-  }));
+  // ✅ Step 1: Fetch Attended By Names & Department Names
+  const jobSlipsWithDetails = await Promise.all(
+    jobSlips.map(async (item) => {
+      let attendedByName = "N/A";
+      let departmentName = "N/A";
 
-  const nextPage = serializedData.length === limit;
+      // Fetch Attended By User Name
+      if (item.attendedBy) {
+        const attendedUser = await prisma.user.findUnique({
+          where: { id: Number(item.attendedBy) },
+          select: { name: true },
+        });
+        if (attendedUser) attendedByName = attendedUser.name;
+      }
+
+      // Fetch Department Name
+      if (item.department) {
+        const department = await prisma.department.findUnique({
+          where: { id: Number(item.department) },
+          select: { name: true },
+        });
+        if (department) departmentName = department.name;
+      }
+
+      return {
+        id: item.id,
+        date: item.date.toISOString(),
+        jobId: item.jobId,
+        complainNo: item.complainNo,
+        complainBy: item.complainBy || "N/A",
+        floorNo: item.floorNo,
+        area: item.area,
+        inventoryRecieptNo: item.inventoryRecieptNo || "N/A",
+        location: item.location,
+        complaintDesc: item.complaintDesc,
+        materialReq: item.materialReq,
+        actionTaken: item.actionTaken,
+        attendedBy: attendedByName, // Replace ID with Name
+        department: departmentName, // Replace ID with Name
+        remarks: item.remarks,
+        completed_At: item.completed_At ? item.completed_At.toISOString() : null,
+        status: item.status,
+        supervisorApproval: item.supervisorApproval,
+        managementApproval: item.managementApproval,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+        picture: item.picture ? item.picture.split(",") : [], // Convert stored string URLs into an array
+        tenant: item.feedbackComplain?.tenant?.tenantName || "N/A",
+      };
+    })
+  );
+
+  console.log("✅ Processed Data:", jobSlipsWithDetails);
+
+  const nextPage = jobSlipsWithDetails.length === limit;
 
   return {
     props: {
-      initialData: serializedData,
+      initialData: jobSlipsWithDetails,
       nextPage,
     },
   };
 }
+

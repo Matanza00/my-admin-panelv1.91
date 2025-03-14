@@ -38,6 +38,9 @@ export default function ViewPlumbingProject() {
           <div className="mb-6">
             <h2 className="text-2xl text-blue-400 font-semibold mb-4">{project.location || "Project Details"}</h2>
             <p className="text-white">
+               <strong className="text-blue-300">Date:</strong> {new Date(project.date).toLocaleDateString()}
+              </p>
+            <p className="text-white">
               <strong className="text-blue-300">Plumber Name:</strong> {project.plumberName || "N/A"}
             </p>
             <p className="text-white">
@@ -74,23 +77,24 @@ export default function ViewPlumbingProject() {
                       
 
                       {/* Plumbing Checks */}
-                      <div className="grid grid-cols-2 gap-4 mt-4 text-white">
-                        {[
-                          "Wash Basin",
-                          "Shower",
-                          "Water Taps",
-                          "Commode",
-                          "Indian WC",
-                          "English WC",
-                          "Water Flush Kit",
-                          "Water Drain",
-                        ].map((check, index) => (
-                          <p key={index}>
-                            <strong className="text-blue-300">{check}:</strong>{" "}
-                            {room.plumbingCheck?.[check.replace(/ /g, "").toLowerCase()] ? "Yes" : "No"}
-                          </p>
-                        ))}
-                      </div>
+<div className="grid grid-cols-2 gap-4 mt-4 text-white">
+  {[
+    "washBasin",
+    "shower",
+    "waterTaps",
+    "commode",
+    "indianWC",
+    "englishWC",
+    "waterFlushKit",
+    "waterDrain",
+  ].map((check, index) => (
+    <p key={index}>
+      <strong className="text-blue-300">{check.replace(/([A-Z])/g, " $1").trim()}:</strong>{" "}
+      {room.plumbingCheck?.[check] ? "Yes" : "No"}
+    </p>
+  ))}
+</div>
+
                     </div>
                   ))
                 ) : (

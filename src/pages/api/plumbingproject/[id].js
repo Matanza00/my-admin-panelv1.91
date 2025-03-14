@@ -45,10 +45,13 @@ export default async function handler(req, res) {
 
   if (req.method === "PUT") {
     const data = req.body;
+    console.log("🔹 Received PUT request for Project ID:", id);
+    console.log("📥 Incoming Data:", JSON.stringify(data, null, 2));
 
     try {
       if (!data.plumberName || !data.supervisorName) {
-        return res.status(400).json({ error: "Plumber ID and Supervisor ID are required." });
+        console.error("❌ Missing plumberName or supervisorName");
+        return res.status(400).json({ error: "Plumber and Supervisor IDs are required." });
       }
 
       const plumberId = parseInt(data.plumberName);
@@ -61,153 +64,124 @@ export default async function handler(req, res) {
       ]);
 
       if (!plumber || !supervisor) {
+        console.error("❌ Invalid Plumber or Supervisor ID");
         return res.status(400).json({ error: "Invalid Plumber or Supervisor ID." });
       }
 
-      // Update PlumbingProject
+      // ✅ Update Plumbing Project
+      console.log("🔄 Updating Plumbing Project...");
       await prisma.plumbingProject.update({
         where: { id: parseInt(id) },
         data: {
-          plumberName: plumberId.toString(), // Store as string
-          supervisorName: supervisorId.toString(), // Store as string
+          plumberName: plumberId.toString(),
+          supervisorName: supervisorId.toString(),
         },
       });
+      console.log("✅ Plumbing Project Updated");
 
-      return res.status(200).json({ message: "Project updated successfully!" });
-    } catch (error) {
-      console.error("Error updating project:", error);
-      return res.status(500).json({ error: "Failed to update project.", details: error.message });
-    }
-  }
-
-  if (req.method === "PUT") {
-    const data = req.body;
-
-    try {
-      // Update PlumbingProject
-      const project = await prisma.plumbingProject.update({
-        where: { id: parseInt(id) },
-        data: {
-          plumberName: data.plumberId.toString(),
-          supervisorName: data.supervisorId.toString(),
-        },
-      });
-
-      // Handle Locations - Create/Update/Delete
-      for (const location of data.locations) {
+      // ✅ Handle Locations, Rooms, and Plumbing Checks
+      for (const location of data.locations || []) {
+        let updatedLocation;
         if (location.id) {
-          // Update existing location
-          await prisma.location.update({
+          console.log(`🔄 Updating Location ID: ${location.id}`);
+          updatedLocation = await prisma.location.update({
             where: { id: location.id },
             data: {
               locationFloor: location.locationFloor,
-              remarks: location.remarks,
               locationName: location.locationName || `Location on ${location.locationFloor}`,
+              remarks: location.remarks || null,
             },
           });
         } else {
-          // Create new location
-          const newLocation = await prisma.location.create({
+          console.log("🆕 Creating a New Location...");
+          updatedLocation = await prisma.location.create({
             data: {
               locationFloor: location.locationFloor,
-              remarks: location.remarks,
               locationName: location.locationName || `Location on ${location.locationFloor}`,
+              remarks: location.remarks || null,
               plumbingProjectId: parseInt(id),
             },
           });
-          location.id = newLocation.id;
         }
+        console.log("✅ Location Updated/Created:", updatedLocation);
 
-        // Handle Rooms - Create/Update/Delete
-        for (const room of location.rooms) {
+        // ✅ Handle Rooms
+        for (const room of location.rooms || []) {
+          let updatedRoom;
           if (room.id) {
-            // Update existing room
-            await prisma.room.update({
+            console.log(`🔄 Updating Room ID: ${room.id}`);
+            updatedRoom = await prisma.room.update({
               where: { id: room.id },
               data: { roomName: room.roomName },
             });
           } else {
-            // Create new room
-            const newRoom = await prisma.room.create({
+            console.log("🆕 Creating a New Room...");
+            updatedRoom = await prisma.room.create({
               data: {
                 roomName: room.roomName,
-                locationId: location.id,
+                locationId: updatedLocation.id,
               },
             });
-            room.id = newRoom.id;
+          }
+          console.log("✅ Room Updated/Created:", updatedRoom);
+
+          // ✅ Ensure plumbingCheck exists before processing
+          if (!room.plumbingCheck || typeof room.plumbingCheck !== "object") {
+            console.warn(`⚠️ Skipping plumbing check for Room ID ${updatedRoom.id}, no data provided`);
+            continue;
           }
 
-          // Handle PlumbingCheck - Create/Update
+          // ✅ Ensure plumbingCheck ID is valid
+          let plumbingCheckId = room.plumbingCheck?.id;
+          if (!plumbingCheckId || typeof plumbingCheckId !== "number") {
+            console.warn(`⚠️ Invalid Plumbing Check ID (${plumbingCheckId}) received, setting to null.`);
+            plumbingCheckId = null;
+          }
+
           const plumbingCheckData = {
-            washBasin: room.plumbingCheck.washBasin,
-            shower: room.plumbingCheck.shower,
-            waterTaps: room.plumbingCheck.waterTaps,
-            commode: room.plumbingCheck.commode,
-            indianWC: room.plumbingCheck.indianWC,
-            englishWC: room.plumbingCheck.englishWC,
-            waterFlushKit: room.plumbingCheck.waterFlushKit,
-            waterDrain: room.plumbingCheck.waterDrain,
+            washBasin: !!room.plumbingCheck?.washBasin,
+            shower: !!room.plumbingCheck?.shower,
+            waterTaps: !!room.plumbingCheck?.waterTaps,
+            commode: !!room.plumbingCheck?.commode,
+            indianWC: !!room.plumbingCheck?.indianWC,
+            englishWC: !!room.plumbingCheck?.englishWC,
+            waterFlushKit: !!room.plumbingCheck?.waterFlushKit,
+            waterDrain: !!room.plumbingCheck?.waterDrain,
           };
 
-          if (room.plumbingCheck?.id) {
-            // Update existing plumbing check
+          console.log(`📊 Plumbing Check Data for Room ${updatedRoom.id}:`, plumbingCheckData);
+
+          if (plumbingCheckId) {
+            console.log(`🔄 Updating Plumbing Check ID: ${plumbingCheckId}`);
             await prisma.plumbingCheck.update({
-              where: { id: room.plumbingCheck.id },
+              where: { id: plumbingCheckId },
               data: plumbingCheckData,
             });
           } else {
-            // Create new plumbing check
+            console.log("🆕 Creating a New Plumbing Check...");
             await prisma.plumbingCheck.create({
               data: {
                 ...plumbingCheckData,
-                roomId: room.id,
+                roomId: updatedRoom.id, // Ensuring roomId is assigned
               },
             });
           }
-        }
-
-        // Handle Removal of Rooms
-        for (const room of location.rooms) {
-          if (room.remove) {
-            // Remove the plumbing check first
-            if (room.plumbingCheck?.id) {
-              await prisma.plumbingCheck.delete({
-                where: { id: room.plumbingCheck.id },
-              });
-            }
-            // Then remove the room
-            await prisma.room.delete({
-              where: { id: room.id },
-            });
-          }
-        }
-
-        // Handle Removal of Location
-        if (location.remove) {
-          // Remove associated rooms and their plumbing checks
-          for (const room of location.rooms) {
-            if (room.plumbingCheck?.id) {
-              await prisma.plumbingCheck.delete({
-                where: { id: room.plumbingCheck.id },
-              });
-            }
-            await prisma.room.delete({
-              where: { id: room.id },
-            });
-          }
-          // Remove the location itself
-          await prisma.location.delete({
-            where: { id: location.id },
-          });
+          console.log("✅ Plumbing Check Updated/Created");
         }
       }
-      
-      return res.status(200).json({ message: "Project updated successfully!",project });
+
+      console.log("✅ PUT Request Completed Successfully");
+      return res.status(200).json({ message: "Project updated successfully!" });
     } catch (error) {
-      console.error("Error updating project:", error);
+      console.error("❌ Error Updating Project:", error);
       return res.status(500).json({ error: "Failed to update project.", details: error.message });
     }
   }
+
+
+
+
+  
 
   res.setHeader("Allow", ["GET", "PUT"]);
   res.status(405).end(`Method ${req.method} Not Allowed`);

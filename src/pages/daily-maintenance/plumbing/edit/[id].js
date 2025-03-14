@@ -112,6 +112,7 @@ export default function EditPlumbingProject() {
 
   if (loading) return <div>Loading project data...</div>;
   if (!project) return <div>No project found.</div>;
+  console.log("project",project);
 
   return (
     <Layout>
@@ -154,22 +155,16 @@ export default function EditPlumbingProject() {
             </select>
           </div>
 
-          {/* Floor Selection */}
-          <div className="flex flex-col">
-            <label className="text-white mb-1">Select Floor</label>
-            <select
-              value={selectedFloor}
-              onChange={(e) => handleFloorSelection(e.target.value)}
-              className="px-4 py-2 rounded-md bg-gray-800 text-white"
-            >
-              <option value="">Select Floor</option>
-              {Object.keys(FLOOR_DATA).map((floor) => (
-                <option key={floor} value={floor}>
-                  {floor}
-                </option>
-              ))}
-            </select>
-          </div>
+
+{/* Floor Selection (View-Only) */}
+<div className="flex flex-col">
+  <label className="text-white mb-1">Selected Floor</label>
+  <div className="px-4 py-2 rounded-md bg-gray-800 text-white">
+    {project?.locations?.[0]?.locationFloor || "No floor selected"}
+  </div>
+</div>
+
+
 
           {/* Locations */}
           <div>
@@ -195,22 +190,23 @@ export default function EditPlumbingProject() {
                         onChange={(e) => handleChange(e, "roomName", "room", locIndex, roomIndex)}
                         className="col-span-5 px-4 py-2 rounded-md bg-gray-700 text-white"
                       />
-                      <div className="col-span-6 mt-2">
-                        <h5 className="text-white">Plumbing Checks</h5>
-                        {Object.keys(room.plumbingCheck).map((key) => {
-                          return (
-                            <label key={key} className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={room.plumbingCheck[key]}
-                                onChange={(e) => handleChange(e, key, "plumbingCheck", locIndex, roomIndex)}
-                                className="form-checkbox h-5 w-5 text-blue-600"
-                              />
-                              <span className="text-white">{key.replace(/([A-Z])/g, " $1")}</span>
-                            </label>
-                          );
-                        })}
-                      </div>
+                     <div className="col-span-6 mt-2">
+                      <h5 className="text-white">Plumbing Checks</h5>
+                      {Object.keys(room.plumbingCheck)
+                        .filter((key) => key !== "id" && key !== "roomId") // Exclude "id" & "roomId"
+                        .map((key) => (
+                          <label key={key} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={room.plumbingCheck[key]}
+                              onChange={(e) => handleChange(e, key, "plumbingCheck", locIndex, roomIndex)}
+                              className="form-checkbox h-5 w-5 text-blue-600"
+                            />
+                            <span className="text-white">{key.replace(/([A-Z])/g, " $1")}</span>
+                          </label>
+                        ))}
+                    </div>
+
                     </div>
                   ))}
                 </div>

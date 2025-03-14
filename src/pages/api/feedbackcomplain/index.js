@@ -88,7 +88,7 @@ export default async function handler(req, res) {
 
   else if (method === 'POST') {
     const {
-      complain, date, complainBy, floorNo, area, location, listServices,
+      complain, date, complainBy, floorNo, area, location, locations,listServices,
       materialReq, actionTaken, attendedBy, remarks, status, tenantId
     } = req.body;
 
@@ -113,13 +113,13 @@ export default async function handler(req, res) {
 
       console.log('🔵 Creating Complaint:', {
         complainNo, complain, date: formattedDate, complainBy, floorNo, area,
-        location, listServices, materialReq, actionTaken, attendedBy, remarks, status, tenantId
+        location, locations,listServices, materialReq, actionTaken, attendedBy, remarks, status, tenantId
       });
 
       const newComplain = await prisma.feedbackComplain.create({
         data: {
           complainNo, complain, date: formattedDate, complainBy: String(complainBy),
-          floorNo: formattedFloorNo, area, location, listServices, materialReq,
+          floorNo: formattedFloorNo, area, location, locations,listServices, materialReq,
           actionTaken, attendedBy, remarks, status, tenantId,
         },
       });
