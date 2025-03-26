@@ -251,7 +251,7 @@ export default function PlumbingProjectsPage({ initialData, nextPage }) {
         )}
 
         {/* Filters */}
-        <div className="mb-8 bg-gray-800 p-6 rounded-lg shadow-lg">
+        {/* <div className="mb-8 bg-gray-800 p-6 rounded-lg shadow-lg">
           <h2 className="text-xl text-white font-semibold mb-4">Filters</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <input
@@ -284,7 +284,7 @@ export default function PlumbingProjectsPage({ initialData, nextPage }) {
               Apply Filters
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Plumbing Projects Card Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

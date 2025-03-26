@@ -17,6 +17,7 @@ const AddChillerForm = () => {
   const [supervisors, setSupervisors] = useState([]);
   const [isSubmitting] = useState(false);
   const [userId, setUserId] = useState(null); // Store the user's ID
+  const [userRole, setUserRole] = useState(null); // Store the user's role
   // Fetch the current user's ID
   useEffect(() => {
     const fetchUser = async () => {
@@ -25,6 +26,7 @@ const AddChillerForm = () => {
         const data = await res.json();
         if (data?.user?.id) {
           setUserId(data.user.id); // Set the user ID
+          setUserRole(data.user.role); // Set the user role
         } else {
           console.error('Failed to fetch user session');
         }
@@ -68,14 +70,24 @@ const AddChillerForm = () => {
   };
 
   const handleAddChiller = () => {
-    setFormData((prev) => ({
-      ...prev,
+    setFormData((prevData) => ({
+      ...prevData,
       Chillers: [
-        ...prev.Chillers,
-        { ColdWaterIn: '', ColdWaterOut: '', ChillingWaterIn: '', ChillingWaterOut: '', HeatIn: '', HeatOut: '', assistantSupervisor: '' },
+        ...prevData.Chillers,
+        { 
+          time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), // Default to current time
+          ColdWaterIn: '', 
+          ColdWaterOut: '', 
+          ChillingWaterIn: '', 
+          ChillingWaterOut: '', 
+          HeatIn: '', 
+          HeatOut: '', 
+          assistantSupervisor: '' 
+        },
       ],
     }));
   };
+  
 
   const handleDeleteChiller = (index) => {
     const updatedChillers = formData.Chillers.filter((_, i) => i !== index);
@@ -190,8 +202,23 @@ const AddChillerForm = () => {
           <div className="mb-4">
             <h3 className="text-white mb-2">Chiller Entries</h3>
             {formData.Chillers.map((entry, index) => (
-              <div key={index} className="grid grid-cols-6 gap-2 mb-2">
-                {['ColdWaterIn', 'ColdWaterOut', 'ChillingWaterIn', 'ChillingWaterOut', 'HeatIn', 'HeatOut','assistantSupervisor'].map(
+              <div key={index} className="grid grid-cols-7 gap-2 mb-2">
+                {/* Time Field (Editable only for manager and super_admin) */}
+                <input
+                  type="time"
+                  name="time"
+                  value={entry.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  onChange={(e) => {
+                    if (userRole === 'manager' || userRole === 'super_admin') {
+                      handleChillerChange(e, index);
+                    }
+                  }}
+                  className="px-3 py-2 rounded-md bg-gray-700 text-white"
+                  readOnly={userRole !== 'manager' && userRole !== 'super_admin'}
+                />
+
+                {/* Other Input Fields */}
+                {['ColdWaterIn', 'ColdWaterOut', 'ChillingWaterIn', 'ChillingWaterOut', 'HeatIn', 'HeatOut', 'assistantSupervisor'].map(
                   (field) => (
                     <input
                       key={field}
@@ -204,6 +231,8 @@ const AddChillerForm = () => {
                     />
                   )
                 )}
+
+                {/* Delete Button */}
                 <button
                   type="button"
                   onClick={() => handleDeleteChiller(index)}
@@ -213,6 +242,7 @@ const AddChillerForm = () => {
                 </button>
               </div>
             ))}
+
             <button
               type="button"
               onClick={handleAddChiller}

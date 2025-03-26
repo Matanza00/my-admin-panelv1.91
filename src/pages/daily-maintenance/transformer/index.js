@@ -263,7 +263,7 @@ export default function TransformersPage({ initialData, nextPage }) {
         )}
 
         {/* Filters */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <div className="flex space-x-4">
             <input
               type="text"
@@ -304,7 +304,7 @@ export default function TransformersPage({ initialData, nextPage }) {
               Apply Filters
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Transformers Card Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">

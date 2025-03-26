@@ -16,6 +16,26 @@ const EditBoilerForm = () => {
   });
   const [technicians, setTechnicians] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
+  const [userRole, setUserRole] = useState(null); // Store the user's ID
+  // Fetch the current user's ID
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data?.user?.role) {
+          setUserRole(data.user.role); // Set the user ID
+        } else {
+          console.error('Failed to fetch user session');
+        }
+      } catch (error) {
+        console.error('Error fetching user session:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
 
   // Fetch boiler data and technician/supervisor lists
   useEffect(() => {
@@ -116,12 +136,24 @@ const EditBoilerForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
+    // Ensure each TimeHr entry has a valid time before sending
+    const updatedTimeHr = formData.TimeHr.map((entry) => ({
+      ...entry,
+      time: entry.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    }));
+  
+    const updatedFormData = {
+      ...formData,
+      TimeHr: updatedTimeHr,
+    };
+  
     const response = await fetch(`/api/hot-water-boiler/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(updatedFormData),
     });
+  
     if (response.ok) {
       alert('Boiler updated!');
       router.push(`/daily-maintenance/hot-water-boiler/view/${id}`);
@@ -129,6 +161,7 @@ const EditBoilerForm = () => {
       alert('Failed to update boiler');
     }
   };
+  
 
   return (
     <Layout>
@@ -206,31 +239,40 @@ const EditBoilerForm = () => {
             />
           </div>
           <div className="mb-4">
-            <h3 className="text-white mb-2">Time Hours</h3>
-            {formData.TimeHr.map((entry, index) => (
-              <div key={index} className="grid grid-cols-7 gap-2 mb-2">
-                {['time', 'HotWaterIn', 'HotWaterOut', 'ExhaustTemp', 'FurnacePressure', 'assistantSupervisor'].map(
-                  (field) => (
-                    <input
-                      key={field}
-                      type={field === 'time' ? 'time' : 'text'} // Use "time" input type for time field
-                      placeholder={field}
-                      name={field}
-                      value={entry[field]} // Ensure value is correctly mapped
-                      onChange={(e) => handleTimeHrChange(e, index)}
-                      className="px-3 py-2 rounded-md bg-gray-700 text-white"
-                    />
-                  )
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteTimeHr(index)}
-                  className="px-3 py-2 bg-red-600 rounded-md text-white"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
+  <h3 className="text-white mb-2">Time Hours</h3>
+  {formData.TimeHr.map((entry, index) => (
+    <div key={index} className="grid grid-cols-7 gap-2 mb-2">
+      {['time', 'HotWaterIn', 'HotWaterOut', 'ExhaustTemp', 'FurnacePressure', 'assistantSupervisor'].map((field) => (
+        <input
+          key={field}
+          type={field === 'time' ? 'time' : 'text'}
+          placeholder={field}
+          name={field}
+          value={field === 'time' 
+            ? entry[field] || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) 
+            : entry[field]
+          }
+          onChange={(e) => {
+            if (field !== 'time' || userRole === 'manager' || userRole === 'super_admin') {
+              handleTimeHrChange(e, index);
+            }
+          }}
+          className="px-3 py-2 rounded-md bg-gray-700 text-white"
+          readOnly={field === 'time' && userRole !== 'manager' && userRole !== 'super_admin'}
+        />
+      ))}
+      <button
+        type="button"
+        onClick={() => handleDeleteTimeHr(index)}
+        className="px-3 py-2 bg-red-600 rounded-md text-white"
+      >
+        Delete
+      </button>
+    </div>
+  ))}
+
+
+
 
             <button
               type="button"

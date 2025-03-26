@@ -26,13 +26,31 @@ model FeedbackComplain {
   remarks      String // Any additional remarks
   status       String // Current status of the complaint (e.g., "Open", "Closed")
   tenantId     Int // Foreign key to tenants
+  createdByTenant  Boolean @default(false)
   tenant       tenants   @relation(fields: [tenantId], references: [id]) // Relation to tenants
   createdAt    DateTime  @default(now()) // Timestamp of when the complaint was created
   updatedAt    DateTime  @updatedAt // Timestamp of the last update
   deletedAt    DateTime? // Nullable, default null (for soft deletes)
 
   jobSlips JobSlip[] // One-to-many relation: a complaint can have many job slips
+  feedbackReview feedbackComplainReview? // 👈 Add this line
 }
+
+model feedbackComplainReview {
+  id                 Int               @id @default(autoincrement())
+  feedbackComplain   FeedbackComplain @relation(fields: [feedbackComplainId], references: [id])
+  feedbackComplainId Int
+  rating             Int
+  comments           String?
+  satisfied          Boolean
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime?
+  deletedAt          DateTime?
+
+  @@unique([feedbackComplainId])
+}
+
+
 
 model JobSlip {
   id                 Int       @id @default(autoincrement()) // Primary key, auto-incrementing
@@ -388,6 +406,7 @@ model FireFighting {
   addressableSmokeStatus   Boolean  @default(false)
   fireAlarmingSystemStatus Boolean  @default(false)
   remarks                  String? // Optional remarks field
+  createdById              Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
@@ -403,6 +422,7 @@ model FireFightingAlarm {
   waterStorageTanksStatus  Boolean  @default(false)
   emergencyLightsStatus    Boolean  @default(false)
   remarks                  String? // Optional remarks field
+  createdById              Int
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?

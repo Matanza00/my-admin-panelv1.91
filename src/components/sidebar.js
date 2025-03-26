@@ -45,7 +45,8 @@ export default function Sidebar() {
   const isSupervisor = role === 'supervisor';
   const isTechnician = role === 'technician';
   const isTenant = role === 'tenant';
-  const canViewAllPages = isAdmin || isSuperAdmin || isSupervisor;
+  const isManager = role === 'manager';
+  const canViewAllPages = isAdmin || isSuperAdmin || isSupervisor || isManager;
 
   // Debugging logs for session and user role
   console.log('Department:', department);
@@ -187,7 +188,7 @@ export default function Sidebar() {
       (canViewAllPages || department === 'plumbing') && { label: 'Water Management', href: '/daily-maintenance/water-management', icon: <FaWater /> },
       (canViewAllPages || department === 'electrical') && { label: 'Generator', href: '/daily-maintenance/generator', icon: <HiUser /> },
       (canViewAllPages || department === 'electrical') && { label: 'Transformer', href: '/daily-maintenance/transformer', icon: <HiUser /> },
-      (canViewAllPages ||  department === 'firefighting' || department === 'firefightingalarm') && {
+      (canViewAllPages ||  department === 'firefighting' || department === 'firefightingalarm' || department === 'firefighter') && {
         label: 'FireFighting',
         href: '/daily-maintenance/firefighting',
         icon: <MdOutlineFireExtinguisher />,
@@ -206,7 +207,7 @@ export default function Sidebar() {
         isOpen={openMenu === 'securityServices'}
         setIsOpen={() => handleMenuToggle('securityServices')}
         items={[
-          (canViewAllPages || session?.user?.department === 'FireFighting' || session?.user?.department === 'FireFightingAlarm') && {
+          (canViewAllPages || session?.user?.department === 'FireFighting' || session?.user?.department === 'FireFightingAlarm' || session?.user?.department === 'FireFighter') && {
             label: 'FireFighting Duty',
             href: '/security-services/firefighting-duty',
             icon: <MdOutlineFireExtinguisher />,

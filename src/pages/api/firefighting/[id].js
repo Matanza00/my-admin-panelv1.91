@@ -3,26 +3,38 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
-  const { id, type = 'fireFighting' } = req.query;
+  const { id, type } = req.query;
+  const parsedId = Number(id);
 
-  if (isNaN(id)) {
+  // Validate ID
+  if (!parsedId || Number.isNaN(parsedId)) {
     return res.status(400).json({ error: 'Invalid ID' });
   }
 
   // Ensure correct model selection
-  const model = type === 'fireFightingAlarm' ? prisma.fireFightingAlarm : prisma.fireFighting;
+  const model =
+    type === 'firefighter' ? prisma.fireFighting :
+    type === 'firefightingalarm' ? prisma.fireFightingAlarm :
+    null;
 
-  if (req.method === 'GET') {
-    try {
-      // Fetch firefighting record (including firefighterName directly)
+  if (!model) {
+    return res.status(400).json({ error: 'Invalid type. Use firefighter or firefightingalarm' });
+  }
+
+  try {
+    if (req.method === 'GET') {
+      console.log(`🔍 Fetching record ID: ${parsedId}, Type: ${type}`);
+
+      // Fetch the record
       const record = await model.findUnique({
-        where: { id: parseInt(id) },
+        where: { id: parsedId },
         select: {
           id: true,
           date: true,
-          firefighterName: true, // Firefighter name is directly stored here
+          firefighterName: true,
           remarks: true,
-          ...(type === 'fireFighting'
+          deletedAt: true,
+          ...(type === 'firefighter'
             ? {
                 addressableSmokeStatus: true,
                 fireAlarmingSystemStatus: true,
@@ -42,37 +54,31 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Record not found' });
       }
 
-      // Return the response
-      res.status(200).json(record);
-    } catch (error) {
-      console.error('Error fetching record:', error);
-      res.status(500).json({ error: 'Failed to fetch record' });
+      return res.status(200).json(record);
     }
-  }  else if (req.method === 'PUT') {
-    try {
-      const requestBody = req.body;
 
-      // Validate request body
+    else if (req.method === 'PUT') {
+      console.log(`✏️ Updating record ID: ${parsedId}, Type: ${type}`);
+
+      const requestBody = req.body;
       if (!requestBody || Object.keys(requestBody).length === 0) {
-        return res.status(400).json({ error: 'Invalid request: No data provided' });
+        return res.status(400).json({ error: 'No data provided for update' });
       }
 
-      // Validate if the record exists before updating
-      const existingRecord = await model.findUnique({
-        where: { id: parseInt(id) },
-      });
-
+      // Check if record exists
+      const existingRecord = await model.findUnique({ where: { id: parsedId } });
       if (!existingRecord) {
         return res.status(404).json({ error: 'Record not found' });
       }
 
       // Update the record
       const updatedRecord = await model.update({
-        where: { id: parseInt(id) },
+        where: { id: parsedId },
         data: {
           firefighterName: requestBody.firefighterName || existingRecord.firefighterName,
           remarks: requestBody.remarks || existingRecord.remarks,
-          ...(type === 'fireFighting' ? {
+          updatedAt: new Date(),
+          ...(type === 'firefighter' ? {
             addressableSmokeStatus: requestBody.addressableSmokeStatus ?? existingRecord.addressableSmokeStatus,
             fireAlarmingSystemStatus: requestBody.fireAlarmingSystemStatus ?? existingRecord.fireAlarmingSystemStatus,
           } : {
@@ -83,26 +89,30 @@ export default async function handler(req, res) {
             waterStorageTanksStatus: requestBody.waterStorageTanksStatus ?? existingRecord.waterStorageTanksStatus,
             emergencyLightsStatus: requestBody.emergencyLightsStatus ?? existingRecord.emergencyLightsStatus,
           }),
-          updatedAt: new Date(), // Ensure updated timestamp
         },
       });
 
       return res.status(200).json(updatedRecord);
-    } catch (error) {
-      console.error('Error updating record:', error);
-      return res.status(500).json({ error: 'Error updating record' });
     }
-  }  else if (req.method === 'DELETE') {
-    try {
+
+    else if (req.method === 'DELETE') {
+      console.log(`🗑️ Deleting record ID: ${parsedId}, Type: ${type}`);
+
+      // Soft delete by setting `deletedAt`
       await model.update({
-        where: { id: parseInt(id) },
-        data: { deletedAt: new Date() }, // Soft delete
+        where: { id: parsedId },
+        data: { deletedAt: new Date() },
       });
 
       return res.status(200).json({ message: 'Record deleted successfully' });
-    } catch (error) {
-      console.error('Error deleting record:', error);
-      return res.status(500).json({ error: 'Error deleting record' });
     }
+
+    else {
+      res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+      return res.status(405).json({ error: `Method ${req.method} not allowed` });
+    }
+  } catch (error) {
+    console.error(`❌ Error processing ${req.method} request:`, error);
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }

@@ -13,7 +13,7 @@ export default function AddFirefightingPage() {
     remarks: '',
   };
 
-  const firefightingFields = {
+  const firefighterFields = {
     addressableSmokeStatus: false,
     fireAlarmingSystemStatus: false,
   };
@@ -29,13 +29,14 @@ export default function AddFirefightingPage() {
 
   const [formData, setFormData] = useState({
     ...initialFormData,
-    ...(type === 'fireFighting' ? firefightingFields : firefightingAlarmFields),
+    ...(type === 'firefighter' ? firefighterFields : firefightingAlarmFields),
   });
 
   const [firefighters, setFirefighters] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState(null);
-
+  const [userId, setUserId] = useState(null); // Store the user's ID
+  const [userRole, setUserRole] = useState(null); // Store the user's role
+  const [userDepartment, setUserDepartment ] = useState(null); //Store the user's Department
   // Fetch the current user's ID
   useEffect(() => {
     const fetchUser = async () => {
@@ -43,7 +44,9 @@ export default function AddFirefightingPage() {
         const res = await fetch('/api/auth/session');
         const data = await res.json();
         if (data?.user?.id) {
-          setUserId(data.user.id);
+          setUserId(data.user.id); // Set the user ID
+          setUserRole(data.user.role); // Set the user role
+          setUserDepartment(data.user.department.name) // Set the user department
         } else {
           console.error('Failed to fetch user session');
         }
@@ -55,21 +58,28 @@ export default function AddFirefightingPage() {
     fetchUser();
   }, []);
 
-  // Fetch firefighters from the API
+  //fetch firefighter based on type
   useEffect(() => {
     const fetchFirefighters = async () => {
       try {
-        const res = await fetch('/api/users/filtered?roles=Technician&departments=FirefightingAlarm');
+        // Determine the correct API URL based on the type
+        const department =
+          type === 'firefighter' ? 'firefighter' : 'firefightingalarm';
+        
+        const res = await fetch(`/api/users/filtered?departments=${department}`);
         if (!res.ok) throw new Error('Failed to fetch firefighters');
+        
         const data = await res.json();
         setFirefighters(data);
       } catch (error) {
         console.error('Error fetching firefighters:', error);
       }
     };
-
+  
     fetchFirefighters();
-  }, []);
+  }, [type]); // Runs when `type` changes
+  
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -109,34 +119,38 @@ export default function AddFirefightingPage() {
     <Layout>
       <div className="p-6 bg-gray-50 min-h-screen">
         <h1 className="text-3xl font-semibold mb-8 text-gray-800">
-          {type === 'fireFighting' ? 'Add Fire Fighting Report' : 'Add Fire Fighting Alarm Report'}
+          {type === 'firefighter' ? 'Add Fire Alarm Inspection Report' : 'Add Fire Fighter Inspection Report'}
         </h1>
 
         {/* Tabs for FireFighting and FireFightingAlarm */}
-        <div className="flex border-b mb-6">
-          <button
-            onClick={() => router.push('/daily-maintenance/firefighting/add?type=fireFighting')}
-            className={`py-2 px-4 text-lg ${
-              type === 'fireFighting' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-gray-600'
-            }`}
-          >
-            Fire Fighting
-          </button>
-          <button
-            onClick={() => router.push('/daily-maintenance/firefighting/add?type=fireFightingAlarm')}
-            className={`py-2 px-4 text-lg ${
-              type === 'fireFightingAlarm' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-gray-600'
-            }`}
-          >
-            Fire Fighting Alarm
-          </button>
-        </div>
+         {/* Tabs for Firefighter and FireFightingAlarm */}
+         {(userRole === 'super_admin' || userRole === 'admin' || userRole === 'supervisor') && (
+  <div className="flex border-b mb-6">
+    <button
+      onClick={() => router.push('/daily-maintenance/firefighting/add?type=firefighter')}
+      className={`py-2 px-4 text-lg ${
+        type === 'firefighter' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-gray-600'
+      }`}
+    >
+      Fire Alarm System
+    </button>
+    <button
+      onClick={() => router.push('/daily-maintenance/firefighting/add?type=firefightingalarm')}
+      className={`py-2 px-4 text-lg ${
+        type === 'firefightingalarm' ? 'border-b-2 border-blue-600 text-blue-600 font-semibold' : 'text-gray-600'
+      }`}
+    >
+      Fire Fighters
+    </button>
+  </div>
+)}
+
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Dropdown for Firefighter Name */}
           <div>
             <label htmlFor="firefighterId" className="block text-sm font-medium text-gray-700">
-              Firefighter Name
+              Technician Name
             </label>
             <select
               id="firefighterId"
@@ -146,7 +160,7 @@ export default function AddFirefightingPage() {
               className="px-4 py-2 border rounded-md w-full"
               required
             >
-              <option value="">Select Firefighter</option>
+              <option value="">Select Technician</option>
               {firefighters.map((firefighter) => (
                 <option key={firefighter.id} value={firefighter.id}>
                   {firefighter.name}
@@ -172,7 +186,7 @@ export default function AddFirefightingPage() {
           {/* Status Checkboxes (Dynamic based on type) */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-gray-700">Status</label>
-            {Object.keys(type === 'fireFighting' ? firefightingFields : firefightingAlarmFields).map((field) => (
+            {Object.keys(type === 'firefighter' ? firefighterFields : firefightingAlarmFields).map((field) => (
               <div key={field} className="flex items-center">
                 <input
                   type="checkbox"

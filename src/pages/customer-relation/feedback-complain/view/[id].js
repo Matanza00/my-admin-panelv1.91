@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../../../components/layout';
+import FeedbackReviewModal from '../../../../components/FeedbackReviewModal';
 import { useSession } from 'next-auth/react';
+import Rating from '@mui/material/Rating';
+
 
 export default function ViewFeedbackComplain() {
   const router = useRouter();
@@ -55,25 +58,63 @@ export default function ViewFeedbackComplain() {
     fetchData();
   }, [id]);
 
-  const handleDepartmentChange = async (e) => {
-    const departmentId = e.target.value;
-    const departmentName = departments.find(dep => dep.id === parseInt(departmentId))?.name;
+const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+const [feedbackExists, setFeedbackExists] = useState(false);
+const [feedbackReview, setFeedbackReview] = useState(null);
 
-    setFormData({ ...formData, departmentId, attendedById: '' });
-    try {
-      const response = await fetch(
-        `/api/users/filtered?roles=technician&departments=${departmentName}`
-      );
-      if (response.ok) {
-        const result = await response.json();
-        setSupervisors(result.map(sup => ({ id: sup.id, name: sup.name })) || []);
-      } else {
-        console.error('Failed to fetch supervisors');
-      }
-    } catch (error) {
-      console.error('Error fetching supervisors:', error);
+useEffect(() => {
+  if (slips.length > 0 && complainData) {
+    const allClosed = slips.every((slip) => slip.status === "Verified & Closed");
+
+    if (!allClosed) {
+      setShowFeedbackModal(false);
+      return;
     }
-  };
+
+    // ✅ Use the already loaded feedbackReview from complainData
+    if (complainData.feedbackReview) {
+      setFeedbackExists(true);
+      setFeedbackReview(complainData.feedbackReview);
+      setShowFeedbackModal(false); // Don't show modal again
+    } else {
+      setFeedbackExists(false);
+      setFeedbackReview(null);
+      setShowFeedbackModal(true); // Show modal to allow feedback submission
+    }
+  }
+}, [slips, complainData]);
+
+
+const [technicians, setTechnicians] = useState([]);
+
+
+
+const handleDepartmentChange = async (e) => {
+  const departmentId = e.target.value;
+  const departmentName = departments.find(dep => dep.id === parseInt(departmentId))?.name;
+
+  setFormData({ ...formData, departmentId, attendedById: '' });
+
+  try {
+    const [technicianRes, supervisorRes] = await Promise.all([
+      fetch(`/api/users/filtered?roles=technician&departments=${departmentName}`),
+      fetch(`/api/users/filtered?roles=supervisor&departments=${departmentName}`)
+    ]);
+
+    if (technicianRes.ok && supervisorRes.ok) {
+      const technicianData = await technicianRes.json();
+      const supervisorData = await supervisorRes.json();
+
+      // You can store them separately if you like:
+      setTechnicians(technicianData || []);
+      setSupervisors(supervisorData || []);
+    } else {
+      console.error('Failed to fetch technician or supervisor');
+    }
+  } catch (error) {
+    console.error('Error fetching technician or supervisor:', error);
+  }
+};
 
   const handleChange = (e) => {
     const { name, value, options } = e.target;
@@ -209,6 +250,7 @@ export default function ViewFeedbackComplain() {
 
   if (!complainData) return <div>Loading...</div>;
 
+
   return (
     <Layout>
       <div className="p-4">
@@ -240,7 +282,7 @@ export default function ViewFeedbackComplain() {
             <strong className="capitalize">
               {key.replace(/([A-Z])/g, ' $1')}:
             </strong>{' '}
-            {formattedDate} Time: {formattedTime}
+            {formattedDate} 
           </div>
         );
       }
@@ -263,6 +305,54 @@ export default function ViewFeedbackComplain() {
 
           </div>
         </div>
+        
+        {feedbackExists && feedbackReview && (
+  <div className="mb-6">
+    <div className="bg-white shadow-2xl rounded-lg p-6 border border-gray-200 transform transition-all duration-300 hover:scale-[1.01]">
+      <h2 className="text-xl font-bold text-gray-800 mb-4">Customer Feedback </h2>
+      <div className="mb-2">
+      <h2 className="text-lg font-medium text-gray-600 mb-4"> {complainData.tenant} </h2>
+      </div>
+
+      <div className="flex items-center space-x-4 mb-2">
+        <span className="text-lg font-medium text-gray-600">Rating:</span>
+        <Rating
+          name="read-only-rating"
+          value={feedbackReview.rating}
+          precision={0.5}
+          readOnly
+        />
+        <span className="text-sm text-gray-500">{feedbackReview.rating} / 5</span>
+      </div>
+
+      <div className="mb-2">
+        <span className="text-lg font-medium text-gray-600">Satisfied:</span>{' '}
+        <span className={`ml-2 font-semibold ${feedbackReview.satisfied ? 'text-green-600' : 'text-red-600'}`}>
+          {feedbackReview.satisfied ? 'Yes' : 'No'}
+        </span>
+      </div>
+      
+
+      {feedbackReview.comments && (
+        <div className="mt-4">
+          <h3 className="text-md font-medium text-gray-700 mb-1">Comments:</h3>
+          <p className="text-gray-600 whitespace-pre-wrap">{feedbackReview.comments}</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
+        {showFeedbackModal && !feedbackExists && (
+  <FeedbackReviewModal
+    open={true}
+    feedbackComplainId={complainData.id}
+    onClose={() => setShowFeedbackModal(false)}
+  />
+)}
+
+
 
         {/* Job Slips Section */}
         <div className="bg-white shadow-md rounded p-4 mb-6">
@@ -365,25 +455,58 @@ export default function ViewFeedbackComplain() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label htmlFor="attendedById" className="block font-medium mb-1">
-                  Technician
-                </label>
-                <select
-                  id="attendedById"
-                  name="attendedById"
-                  onChange={handleChange}
-                  value={formData.attendedById ? formData.attendedById.split(',') : []} // Safe split
-                  multiple
-                  className="w-full border rounded px-2 py-1"
-                >
-                  {supervisors.map((supervisor) => (
-                    <option key={supervisor.id} value={supervisor.id}>
-                      {supervisor.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Technicians Dropdown */}
+<div>
+  <label htmlFor="technicians" className="block font-medium mb-1">Technicians</label>
+  <select
+    id="technicians"
+    multiple
+    className="w-full border rounded px-2 py-1"
+    onChange={(e) => {
+      const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
+      const existing = formData.attendedById ? formData.attendedById.split(',') : [];
+      const others = existing.filter(id => !supervisors.some(s => s.id.toString() === id));
+      const updated = [...new Set([...others, ...selected])];
+      setFormData({ ...formData, attendedById: updated.join(',') });
+    }}
+    value={
+      formData.attendedById
+        ? formData.attendedById.split(',').filter(id => technicians.some(t => t.id.toString() === id))
+        : []
+    }
+  >
+    {technicians.map((tech) => (
+      <option key={tech.id} value={tech.id}>{tech.name}</option>
+    ))}
+  </select>
+</div>
+
+{/* Supervisors Dropdown */}
+<div>
+  <label htmlFor="supervisors" className="block font-medium mb-1">Supervisors</label>
+  <select
+    id="supervisors"
+    multiple
+    className="w-full border rounded px-2 py-1"
+    onChange={(e) => {
+      const selected = Array.from(e.target.selectedOptions).map(opt => opt.value);
+      const existing = formData.attendedById ? formData.attendedById.split(',') : [];
+      const others = existing.filter(id => !technicians.some(t => t.id.toString() === id));
+      const updated = [...new Set([...others, ...selected])];
+      setFormData({ ...formData, attendedById: updated.join(',') });
+    }}
+    value={
+      formData.attendedById
+        ? formData.attendedById.split(',').filter(id => supervisors.some(s => s.id.toString() === id))
+        : []
+    }
+  >
+    {supervisors.map((sup) => (
+      <option key={sup.id} value={sup.id}>{sup.name}</option>
+    ))}
+  </select>
+</div>
+
               {[{ label: 'Complaint Description', name: 'complaintDesc', type: 'text' },
                 { label: 'Material Required', name: 'materialReq', type: 'text' },
                 { label: 'Action Taken', name: 'actionTaken', type: 'text' },

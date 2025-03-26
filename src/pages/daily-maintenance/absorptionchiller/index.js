@@ -238,7 +238,7 @@ export default function AbsorbtionChillerPage({ initialData, nextPage }) {
 
 
         {/* Filters */}
-        <div className="mb-6">
+        {/* <div className="mb-6">
           <div className="flex space-x-4">
             <input
               type="text"
@@ -279,7 +279,7 @@ export default function AbsorbtionChillerPage({ initialData, nextPage }) {
               Apply Filters
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Hot Water Boiler Reports Card Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">

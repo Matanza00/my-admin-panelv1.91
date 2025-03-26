@@ -4,70 +4,49 @@ import Layout from '../../../../components/layout';
 
 const ViewFireFighting = () => {
   const router = useRouter();
-  const { id, type = 'fireFighting' } = router.query; // Get type from query parameter
+  const { id, type } = router.query;
   const [firefightingRecord, setFirefightingRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (id && type) {
-      fetch(`/api/firefighting/${id}?type=${type}`) // Fetch based on type
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.error) {
-            setError(data.error);
-          } else {
-            setFirefightingRecord(data);
-          }
-        })
-        .catch((err) => {
-          console.error('Failed to fetch data:', err);
-          setError('Failed to fetch record');
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }, [id, type]); // Depend on both `id` and `type`
+    if (!id || !type || (type !== 'firefighter' && type !== 'firefightingalarm')) return;
 
-  if (loading) {
-    return <div className="text-center text-gray-600 py-6">Loading record...</div>;
-  }
+    fetch(`/api/firefighting/${id}?type=${type}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setFirefightingRecord(data);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch data:', err);
+        setError('Failed to fetch record');
+      })
+      .finally(() => setLoading(false));
+  }, [id, type]);
 
-  if (error) {
-    return <div className="text-center text-red-600 py-6">{error}</div>;
-  }
+  if (loading) return <div className="text-center text-gray-600 py-6">Loading record...</div>;
+  if (error) return <div className="text-center text-red-600 py-6">{error}</div>;
 
   return (
     <Layout>
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
         <h1 className="text-3xl font-semibold text-center text-gray-800 mb-6">
-          {type === 'fireFighting' ? 'View Fire Fighting Record' : 'View Fire Fighting Alarm Record'}
+          {type === 'firefighter' ? 'View Fire Alarm Inspection Report' : 'View Fire Fighter Inspection Report'}
         </h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* Display Date */}
-          <div className="flex flex-col">
-            <label className="font-medium text-gray-700">Date:</label>
-            <div className="mt-2 p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-              {new Date(firefightingRecord.date).toLocaleDateString('en-GB')} 
-              &nbsp; Time: {new Date(firefightingRecord.date).toLocaleTimeString()}
-            </div>
-          </div>
-
-          {/* Display Firefighter Name */}
-          <div className="flex flex-col">
-            <label className="font-medium text-gray-700">Firefighter Name:</label>
-            <div className="mt-2 p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-              {firefightingRecord.firefighterName}
-            </div>
-          </div>
+          <InfoItem label="Date" value={new Date(firefightingRecord.date).toLocaleDateString('en-GB')} />
+          <InfoItem label="Firefighter Name" value={firefightingRecord.firefighterName} />
         </div>
 
-        {/* Display Statuses - Dynamically Rendered Based on Type */}
+        {/* Status Section */}
         <div className="space-y-6 mt-6">
           <div className="grid grid-cols-1 gap-y-4 mt-6">
-            {type === 'fireFighting' ? (
+            {type === 'firefighter' ? (
               <>
                 <StatusItem label="Addressable Smoke" status={firefightingRecord.addressableSmokeStatus} />
                 <StatusItem label="Fire Alarming System" status={firefightingRecord.fireAlarmingSystemStatus} />
@@ -84,20 +63,21 @@ const ViewFireFighting = () => {
             )}
           </div>
 
-          {/* Display Remarks */}
-          <div className="flex flex-col">
-            <label className="font-medium text-gray-700">Remarks:</label>
-            <div className="mt-2 p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-600">
-              {firefightingRecord.remarks || 'No remarks provided'}
-            </div>
-          </div>
+          {/* Remarks */}
+          <InfoItem label="Remarks" value={firefightingRecord.remarks || 'No remarks provided'} />
         </div>
       </div>
     </Layout>
   );
 };
 
-// Helper Component to display status items
+const InfoItem = ({ label, value }) => (
+  <div className="flex flex-col">
+    <label className="font-medium text-gray-700">{label}:</label>
+    <div className="mt-2 p-3 border border-gray-300 rounded-md bg-gray-100 text-gray-600">{value}</div>
+  </div>
+);
+
 const StatusItem = ({ label, status }) => (
   <div className="flex items-center justify-between">
     <label className="text-lg font-medium text-gray-700 w-1/2">{label}:</label>

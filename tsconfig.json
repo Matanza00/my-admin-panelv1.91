@@ -37,7 +37,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts"
-  ],
+, "src/pages/api/feedback-review/[id].js"  ],
   "exclude": [
     "node_modules"
   ]

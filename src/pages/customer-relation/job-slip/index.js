@@ -532,7 +532,7 @@ export async function getServerSideProps(context) {
     where: whereCondition,
     skip: 0,
     take: limit,
-    orderBy: { date: "desc" },
+    orderBy: { createdAt: "desc" },
     include: {
       feedbackComplain: {
         select: {

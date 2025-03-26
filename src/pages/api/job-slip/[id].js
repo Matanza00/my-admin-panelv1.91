@@ -101,7 +101,7 @@ export default async function handler(req, res) {
     let updatedCompletedAt = completed_At;
 
     if (updatedPicture) {
-      updatedStatus = supervisorApproval ? 'Verified & Closed' : 'Resolved';
+      updatedStatus = supervisorApproval ? 'Verified & Closed' : 'Verified & Closed';
       updatedCompletedAt = new Date();
     }
     if (supervisorApproval) {
@@ -152,7 +152,7 @@ export default async function handler(req, res) {
     if (allJobSlipsCompleted.length === allJobSlips.length) {
       await prisma.feedbackComplain.update({
         where: { complainNo },
-        data: { status: 'Resolved' },
+        data: { status: 'Verified & Closed' },
       });
     }
 
@@ -237,9 +237,87 @@ export default async function handler(req, res) {
       }
     }
 
+    // ✅ Below Part is for feedback of the complaint
+const feedbackComplain = await prisma.feedbackComplain.findFirst({
+  where: { complainNo },
+  select: {
+    id: true,
+    attendedBy: true,
+    complainNo: true,
+    jobSlips: { select: { status: true } },
+  },
+});
+
+if (feedbackComplain) {
+  const allClosed = feedbackComplain.jobSlips.every(js => js.status === 'Verified & Closed');
+
+  if (allClosed && feedbackComplain.attendedBy) {
+    // Use exact match (case-sensitive unless you normalize)
+    const complainUser = await prisma.user.findFirst({
+      where: {
+        name: feedbackComplain.attendedBy,
+      },
+      select: { id: true, name: true },
+    });
+
+    const feedbackTemplate = await prisma.notificationTemplate.findUnique({
+      where: { name: 'Added Jobslip' },
+    });
+
+    if (complainUser && feedbackTemplate) {
+      await prisma.notification.create({
+        data: {
+          templateId: feedbackTemplate.id,
+          userId: complainUser.id,
+          createdById: complainUser.id,
+          isRead: false,
+          altText: `Hello ${complainUser.name}, your complaint ${feedbackComplain.complainNo} has been fully resolved. Please fill the feedback form .`,
+          link: `/customer-relation/feedback-complain/view/${feedbackComplain.id}`,
+        },
+      });
+        
+          
+            // Send email
+          // const transporter = nodemailer.createTransport({
+          //   host: process.env.EMAIL_HOST,
+          //   port: process.env.EMAIL_PORT,
+          //   secure: process.env.EMAIL_SECURE === 'true',
+          //   auth: {
+          //     user: process.env.EMAIL_USER,
+          //     pass: process.env.EMAIL_PASS,
+          //   },
+          // });
+        
+          //   await transporter.sendMail({
+          //     from: process.env.EMAIL_FROM,
+          //     to: complainUser.email,
+          //     subject: `Complaint ${feedbackComplain.complainNo} Resolved`,
+          //     text: `Hello ${complainUser.name},\n\nAll job slips for your complaint (${feedbackComplain.complainNo}) have been completed.
+          //     \n\nPlease review it at the following link:\n\n${process.env.APP_URL}/customer-relation/feedback-complain/view/${feedbackComplain.id}\n\n\n\nThank you.`,
+          //   });
+            console.log('✅ Notified complain creator of full resolution');
+          } else {
+            console.warn(
+              `⚠️ Skipping notification — missing ${
+                !complainUser ? 'complainUser' : ''
+              } ${!complainUser && !feedbackTemplate ? 'and' : ''} ${
+                !feedbackTemplate ? 'feedbackTemplate' : ''
+              }`
+            );
+            
+          }
+        }}
+  
+
+
     res.status(200).json(updatedJobSlip);
   } catch (error) {
-    console.error('❌ Error updating job slip:', error);
+    console.error('❌ Error updating job slip:', {
+      name: error?.name || 'UnknownError',
+      message: error?.message || 'No message provided',
+      stack: error?.stack || 'No stack trace',
+    });
+    
     res.status(500).json({ error: 'Error updating job slip', message: error.message });
   }
   break;

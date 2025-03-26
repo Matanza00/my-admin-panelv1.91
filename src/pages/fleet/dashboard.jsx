@@ -37,15 +37,6 @@ export default function FleetDashboard({ initialVehicles }) {
     fetchStats();
     fetchBookings();
     fetchBookingStats();
-
-    if (typeof window !== "undefined" && window.google) {
-      setCarIcon({
-        url: "/car-icon.png",
-        scaledSize: new window.google.maps.Size(40, 40),
-        origin: new window.google.maps.Point(0, 0),
-        anchor: new window.google.maps.Point(20, 20),
-      });
-    }
   }, []);
 
   const fetchBookingStats = async (date = "") => {

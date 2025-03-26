@@ -71,6 +71,7 @@ export default async function handler(req, res) {
         include: {
           tenant: { select: { tenantName: true } }, // Include tenant name
           jobSlips: { select: { id: true } }, // Include related job slips
+          feedbackReview: true,        // ✅ Include feedback review too
         },
       });
   
@@ -88,43 +89,79 @@ export default async function handler(req, res) {
 
   else if (method === 'POST') {
     const {
-      complain, date, complainBy, floorNo, area, location, locations,listServices,
-      materialReq, actionTaken, attendedBy, remarks, status, tenantId
+        complain, date, complainBy, floorNo, area, location, locations, listServices,
+        materialReq, actionTaken, attendedBy, remarks, status, tenantId
     } = req.body;
 
     const formattedFloorNo = typeof floorNo === 'string' ? floorNo : String(floorNo);
 
     if (!complain || !date || !status) {
-      return res.status(400).json({ error: 'Missing required fields: complain, date, or status' });
+        return res.status(400).json({ error: 'Missing required fields: complain, date, or status' });
     }
 
     if (!tenantId) {
-      return res.status(400).json({ error: 'tenantId is required for tenants' });
+        return res.status(400).json({ error: 'tenantId is required for tenants' });
     }
 
     try {
-      const formattedDate = new Date(date);
-      if (isNaN(formattedDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid date format' });
-      }
+        const formattedDate = new Date(date);
+        if (isNaN(formattedDate.getTime())) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
 
-      const timestamp = Date.now();
-      const complainNo = `CMP-${timestamp}`;
+        const timestamp = Date.now();
+        const complainNo = `CMP-${timestamp}`;
 
-      console.log('🔵 Creating Complaint:', {
-        complainNo, complain, date: formattedDate, complainBy, floorNo, area,
-        location, locations,listServices, materialReq, actionTaken, attendedBy, remarks, status, tenantId
-      });
+        console.log('🔵 Creating Complaint:', {
+            complainNo, complain, date: formattedDate, complainBy, floorNo, area,
+            location, locations, listServices, materialReq, actionTaken, attendedBy, remarks, status, tenantId
+        });
 
-      const newComplain = await prisma.feedbackComplain.create({
-        data: {
-          complainNo, complain, date: formattedDate, complainBy: String(complainBy),
-          floorNo: formattedFloorNo, area, location, locations,listServices, materialReq,
-          actionTaken, attendedBy, remarks, status, tenantId,
-        },
-      });
+        // ✅ Step 1: Find the userId from attendedBy (user name)
+        let createdByTenant = false;
 
-      console.log('✅ Feedback Complaint Created:', newComplain);
+        if (attendedBy) {
+            const userRecord = await prisma.user.findFirst({
+                where: { name: attendedBy },  // 🔹 Finding the user by name
+                select: { id: true }
+            });
+
+            if (userRecord) {
+                // ✅ Step 2: Check if the userId belongs to a tenant
+                const tenant = await prisma.tenants.findFirst({
+                    where: { userId: userRecord.id },  // 🔹 Matching userId with tenant.userId
+                    select: { id: true }
+                });
+
+                if (tenant) {
+                    createdByTenant = true;
+                }
+            }
+        }
+
+        // ✅ Step 3: Create the complaint
+        const newComplain = await prisma.feedbackComplain.create({
+            data: {
+                complainNo, 
+                complain, 
+                date: formattedDate, 
+                complainBy: String(complainBy),
+                floorNo: formattedFloorNo, 
+                area, 
+                location, 
+                locations,
+                listServices, 
+                materialReq,
+                actionTaken, 
+                attendedBy, 
+                remarks, 
+                status, 
+                tenantId,
+                createdByTenant // ✅ Assign the correct value
+            },
+        });
+
+        console.log('✅ Feedback Complaint Created:', newComplain);
 
       // ✅ Fetch Notification Template
       const template = await prisma.notificationTemplate.findUnique({

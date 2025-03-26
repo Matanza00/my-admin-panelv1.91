@@ -17,6 +17,26 @@ const EditBoilerForm = () => {
 
   const [operators, setOperators] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
+  const [userRole, setUserRole] = useState(null); // Store the user's ID
+  // Fetch the current user's ID
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data?.user?.role) {
+          setUserRole(data.user.role); // Set the user ID
+        } else {
+          console.error('Failed to fetch user session');
+        }
+      } catch (error) {
+        console.error('Error fetching user session:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
+  console.log("Mani",userRole)
 
   useEffect(() => {
     if (!id) return;
@@ -87,24 +107,33 @@ console.log("form",formData);
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await fetch(`/api/absorptionchiller/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+  e.preventDefault();
 
-      if (response.ok) {
-        alert('Chiller updated successfully');
-        router.push(`/daily-maintenance/absorptionchiller/view/${id}`);
-      } else {
-        alert('Error updating chiller');
-      }
-    } catch (error) {
-      console.error('Error submitting form:', error);
-    }
+  // Ensure each Chiller entry has a valid time before sending
+  const updatedChillers = formData.Chillers.map((chiller) => ({
+    ...chiller,
+    time: chiller.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  }));
+
+  const updatedFormData = {
+    ...formData,
+    Chillers: updatedChillers,
   };
+
+  const response = await fetch(`/api/absorptionchiller/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updatedFormData),
+  });
+
+  if (response.ok) {
+    alert('Chiller updated!');
+    router.push(`/daily-maintenance/absorptionchiller/view/${id}`);
+  } else {
+    alert('Failed to update chiller');
+  }
+};
+
 
   const addChiller = () => {
     setFormData({
@@ -247,98 +276,103 @@ console.log("form",formData);
                 </tr>
               </thead>
               <tbody>
-                {formData.Chillers.map((chiller, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        type="time"
-                        name="time"
-                        value={chiller.time}
-                        onChange={(e) => handleChillerChange(index, e)}
-                        required
-                        className="w-full"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        name="ColdWaterIn"
-                        value={chiller.ColdWaterIn}
-                        onChange={(e) => handleChillerChange(index, e)}
-                        required
-                        className="w-full"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        name="ColdWaterOut"
-                        value={chiller.ColdWaterOut}
-                        onChange={(e) => handleChillerChange(index, e)}
-                        required
-                        className="w-full"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        name="ChillingWaterIn"
-                        value={chiller.ChillingWaterIn}
-                        onChange={(e) => handleChillerChange(index, e)}
-                        required
-                        className="w-full"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        name="ChillingWaterOut"
-                        value={chiller.ChillingWaterOut}
-                        onChange={(e) => handleChillerChange(index, e)}
-                        required
-                        className="w-full"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        name="HeatIn"
-                        value={chiller.HeatIn}
-                        onChange={(e) => handleChillerChange(index, e)}
-                        required
-                        className="w-full"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        name="HeatOut"
-                        value={chiller.HeatOut}
-                        onChange={(e) => handleChillerChange(index, e)}
-                        required
-                        className="w-full"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="text"
-                        name="assistantSupervisor"
-                        value={chiller.assistantSupervisor}
-                        onChange={(e) => handleChillerChange(index, e)}
-                        className="w-full"
-                      />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        onClick={() => deleteChiller(index)}
-                        className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+              {formData.Chillers.map((chiller, index) => (
+                <tr key={index}>
+                  <td>
+                    <input
+                      type="time"
+                      name="time"
+                      value={chiller.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      onChange={(e) => {
+                        if (userRole === 'manager' || userRole === 'super_admin') {
+                          handleChillerChange(index, e);
+                        }
+                      }}
+                      className="w-full"
+                      readOnly={userRole !== 'manager' && userRole !== 'super_admin'}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="ColdWaterIn"
+                      value={chiller.ColdWaterIn}
+                      onChange={(e) => handleChillerChange(index, e)}
+                      required
+                      className="w-full"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="ColdWaterOut"
+                      value={chiller.ColdWaterOut}
+                      onChange={(e) => handleChillerChange(index, e)}
+                      required
+                      className="w-full"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="ChillingWaterIn"
+                      value={chiller.ChillingWaterIn}
+                      onChange={(e) => handleChillerChange(index, e)}
+                      required
+                      className="w-full"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="ChillingWaterOut"
+                      value={chiller.ChillingWaterOut}
+                      onChange={(e) => handleChillerChange(index, e)}
+                      required
+                      className="w-full"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="HeatIn"
+                      value={chiller.HeatIn}
+                      onChange={(e) => handleChillerChange(index, e)}
+                      required
+                      className="w-full"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      name="HeatOut"
+                      value={chiller.HeatOut}
+                      onChange={(e) => handleChillerChange(index, e)}
+                      required
+                      className="w-full"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="text"
+                      name="assistantSupervisor"
+                      value={chiller.assistantSupervisor}
+                      onChange={(e) => handleChillerChange(index, e)}
+                      className="w-full"
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      onClick={() => deleteChiller(index)}
+                      className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+
               </tbody>
             </table>
             <button

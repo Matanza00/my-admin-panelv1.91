@@ -24,6 +24,7 @@ export default async function handler(req, res) {
               select: { tenantName: true },
             },
             jobSlips: true,
+            feedbackReview: true,        // ✅ Include feedback review too
           },
         });
 
@@ -49,6 +50,7 @@ export default async function handler(req, res) {
           status: feedbackComplain.status,
           tenant: feedbackComplain.tenant ? feedbackComplain.tenant.tenantName : "N/A",
           jobSlips: feedbackComplain.jobSlips.map((job) => job),
+          feedbackReview: feedbackComplain.feedbackReview || null, // ✅ Add this line
         });
       }
 
@@ -62,6 +64,7 @@ export default async function handler(req, res) {
           jobSlips: {
             select: { id: true },
           },
+          feedbackReview: true,        // ✅ Include feedback review too
         },
       });
 
@@ -83,6 +86,7 @@ export default async function handler(req, res) {
         status: item.status,
         tenant: item.tenant ? item.tenant.tenantName : "N/A",
         jobSlips: item.jobSlips.map((job) => job.id),
+        feedbackReview: item.feedbackReview || null, // ✅ Add this line
       }));
 
       return res.status(200).json(serializedData);

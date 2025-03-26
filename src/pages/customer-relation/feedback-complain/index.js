@@ -13,6 +13,8 @@ import { getSession } from 'next-auth/react';
 export default function FeedbackComplainPage({ initialData, nextPage ,userTenant }) {
   const [data, setData] = useState(initialData);
   const [page, setPage] = useState(1);
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+  const [selectedComplaintId, setSelectedComplaintId] = useState(null);
   const [hasMore, setHasMore] = useState(nextPage);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filters, setFilters] = useState({
@@ -228,6 +230,55 @@ useEffect(() => {
     doc.save('feedbackreports.pdf');
   };
   console.log("🔍 Logged-in User Tenant:", userTenant); // ✅ Debug: Ensure tenant is received
+
+  const declineComplaint = async (id) => {
+    try {
+      // 🔍 Get the current item data from state
+      const currentItem = data.find((item) => item.id === id);
+  
+      if (!currentItem) {
+        alert("Complaint not found in the current list.");
+        return;
+      }
+  
+      // Send the full complaint data, only changing the status and remarks
+      const res = await fetch(`/api/feedbackcomplain/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          complain: currentItem.complain,
+          date: currentItem.date,
+          complainBy: currentItem.complainBy,
+          floorNo: currentItem.floorNo,
+          area: currentItem.area,
+          location: currentItem.location,
+          locations: currentItem.locations,
+          listServices: currentItem.listServices,
+          materialReq: currentItem.materialReq,
+          actionTaken: currentItem.actionTaken,
+          attendedBy: currentItem.attendedBy,
+          remarks: 'Declined from dashboard',
+          status: 'DECLINE',
+        }),
+      });
+  
+      if (!res.ok) throw new Error("Failed to decline complaint");
+  
+      const updated = await res.json();
+  
+      // 🔁 Update status in frontend
+      setData((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, status: updated.status } : item
+        )
+      );
+    } catch (err) {
+      console.error("❌ Error declining complaint:", err);
+      alert("Error declining complaint.");
+    }
+  };
+  
+  
   
   if (!data || data.length === 0) {
     return <Layout>      <div className="p-4">
@@ -554,11 +605,36 @@ useEffect(() => {
               <HiEye className="mr-1" /> View
             </div>
           </Link>
-          <Link href={`/customer-relation/feedback-complain/edit/${item.id}`}>
-            <div className="text-blue-600 hover:text-blue-800 flex items-center cursor-pointer">
-              <HiOutlinePencil className="mr-1" /> Edit
-            </div>
-          </Link>
+          
+  {(
+    (item.createdByTenant && userTenant?.role?.toLowerCase() === "tenant") || 
+    !item.createdByTenant 
+  ) ? (
+    // ✅ Show Edit button to tenant (if allowed)
+    <Link href={`/customer-relation/feedback-complain/edit/${item.id}`}>
+      <div className="text-blue-600 hover:text-blue-800 flex items-center cursor-pointer">
+        <HiOutlinePencil className="mr-1" /> Edit
+      </div>
+    </Link>
+  ) : (
+    // ✅ Show Decline button for Admins/Supervisors
+    ['admin', 'super_admin', 'supervisor'].includes(userTenant?.role?.toLowerCase()) && (
+      <button
+  onClick={() => {
+    setSelectedComplaintId(item.id);
+    setShowDeclineModal(true);
+  }}
+  className="text-yellow-600 hover:text-yellow-800 flex items-center cursor-pointer"
+>
+  <HiOutlineTrash className="mr-1" /> Decline
+</button>
+
+    )
+  )}
+  
+
+
+
           <button className="text-red-600 flex items-center cursor-pointer">
             <HiOutlineTrash className="mr-1" /> Delete
           </button>
@@ -580,6 +656,34 @@ useEffect(() => {
           )}
         </div>
       </div>
+
+      {showDeclineModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-lg shadow-lg p-6 w-96">
+      <h2 className="text-xl font-semibold mb-4 text-gray-800">Confirm Decline</h2>
+      <p className="mb-6 text-gray-700">Are you sure you want to decline this complaint?</p>
+      <div className="flex justify-end space-x-4">
+        <button
+          onClick={() => setShowDeclineModal(false)}
+          className="px-4 py-2 rounded-md bg-gray-300 text-gray-800 hover:bg-gray-400"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={async () => {
+            await declineComplaint(selectedComplaintId);
+            setShowDeclineModal(false);
+            setSelectedComplaintId(null);
+          }}
+          className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700"
+        >
+          Yes, Decline
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </Layout>
   );
 }
@@ -650,11 +754,12 @@ export async function getServerSideProps(context) {
   // Fetch the feedback complaints based on whereCondition
   const feedbackComplains = await prisma.feedbackComplain.findMany({
     where: whereCondition,
-    orderBy: { date: "desc" },
+    orderBy: { createdAt: "desc" },
     include: {
       tenant: true, // Include tenant data if necessary
     },
   });
+  console.log("complain",feedbackComplains)
 
   const serializedData = feedbackComplains.map((item) => ({
     id: item.id,
@@ -665,11 +770,14 @@ export async function getServerSideProps(context) {
     tenantName: item.tenant ? item.tenant.tenantName : "N/A", // Include tenant name if available
     status: item.status,
     attendedBy: item.attendedBy,
+    createdByTenant: item.createdByTenant,
   }));
-
+  
+  
   return {
     props: {
       initialData: serializedData,
+      userTenant: session.user || {}, // ✅ Ensures userTenant is never undefined
     },
   };
 }

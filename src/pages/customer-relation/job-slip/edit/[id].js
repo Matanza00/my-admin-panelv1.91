@@ -33,7 +33,7 @@ export default function EditJobSlip({ jobSlip }) {
     jobId: jobSlip.jobId,
     complainNo: jobSlip.complainNo,
     complainBy: jobSlip.complainBy,
-    complainDesc: jobSlip.complainDesc,
+    complaintDesc: jobSlip.complaintDesc,
     materialReq: jobSlip.materialReq,
     actionTaken: jobSlip.actionTaken,
     attendedBy: jobSlip.attendedBy,
@@ -43,7 +43,7 @@ export default function EditJobSlip({ jobSlip }) {
     floorNo: jobSlip.floorNo,
     area: jobSlip.area,
     location: jobSlip.location,
-    completedAt: jobSlip.completedAt,
+    completed_At: jobSlip.completed_At,
     supervisorApproval: jobSlip.supervisorApproval, // Add supervisor approval
     managementApproval: jobSlip.managementApproval,
     picture: jobSlip.picture ? jobSlip.picture.split(',').map(url => url.trim()) : [],
@@ -161,7 +161,7 @@ export default function EditJobSlip({ jobSlip }) {
                   className="w-full border rounded px-2 py-1 bg-gray-200"
                 />
               </div>
-              <div className="text-sm">
+              {/* <div className="text-sm">
                 <label htmlFor="complainBy" className="block font-medium mb-1">
                   Complain By
                 </label>
@@ -173,7 +173,7 @@ export default function EditJobSlip({ jobSlip }) {
                   disabled // Non-editable
                   className="w-full border rounded px-2 py-1 bg-gray-200"
                 />
-              </div>
+              </div> */}
               <div className="text-sm">
                 <label htmlFor="complainDesc" className="block font-medium mb-1">
                   Complaint Description
@@ -182,7 +182,7 @@ export default function EditJobSlip({ jobSlip }) {
                   id="complainDesc"
                   name="complainDesc"
                   type="text"
-                  value={formData.complainDesc}
+                  value={formData.complaintDesc}
                   disabled // Non-editable
                   className="w-full border rounded px-2 py-1 bg-gray-200"
                 />
@@ -214,19 +214,6 @@ export default function EditJobSlip({ jobSlip }) {
                 />
               </div>
               <div className="text-sm">
-                <label htmlFor="attendedBy" className="block font-medium mb-1">
-                  Attended By
-                </label>
-                <input
-                  id="attendedBy"
-                  name="attendedBy"
-                  type="text"
-                  value={formData.attendedBy}
-                  onChange={handleChange} // Editable
-                  className="w-full border rounded px-2 py-1"
-                />
-              </div>
-              <div className="text-sm">
                 <label htmlFor="remarks" className="block font-medium mb-1">
                   Remarks
                 </label>
@@ -240,19 +227,44 @@ export default function EditJobSlip({ jobSlip }) {
                 />
               </div>
               <div className="text-sm">
-                <label htmlFor="status" className="block font-medium mb-1">
-                  Status
+                <label htmlFor="attendedBy" className="block font-medium mb-1">
+                  Attended By
                 </label>
                 <input
-                  id="status"
-                  name="status"
+                  id="attendedBy"
+                  name="attendedBy"
                   type="text"
-                  value={formData.status}
-                  disabled
+                  value={formData.attendedBy}
                   onChange={handleChange} // Editable
-                  className="w-full border rounded px-2 py-1  bg-gray-200"
+                  className="w-full border rounded px-2 py-1"
                 />
               </div>
+              <div className="text-sm">
+                <label htmlFor="attendedBy" className="block font-medium mb-1">
+                  Department
+                </label>
+                <input
+                  type="text"
+                  value={jobSlip.department}
+                  onChange={handleChange} // Editable
+                  className="w-full border rounded px-2 py-1"
+                  disabled
+                />
+              </div>
+              <div className="text-sm">
+                <label htmlFor="location" className="block font-medium mb-1">
+                  Location
+                </label>
+                <input
+                  id="location"
+                  name="location"
+                  type="text"
+                  value={formData.location}
+                  disabled
+                  className="w-full border rounded px-2 py-1 bg-gray-200"
+                />
+              </div>
+              
               {/* Add Date field */}
 <div className="text-sm">
   <label htmlFor="date" className="block font-medium mb-1">
@@ -262,7 +274,7 @@ export default function EditJobSlip({ jobSlip }) {
     id="date"
     name="date"
     type="text"
-    value={`${new Date(formData.date).toLocaleDateString('en-GB')} Time: ${String(new Date(formData.date).getHours()).padStart(2, '0')}/${String(new Date(formData.date).getMinutes()).padStart(2, '0')}/${String(new Date(formData.date).getSeconds()).padStart(2, '0')}`}
+    value={`${new Date(formData.date).toLocaleDateString('en-GB')} `}
     disabled // Non-editable
     className="w-full border rounded px-2 py-1 bg-gray-200"
   />
@@ -296,16 +308,17 @@ export default function EditJobSlip({ jobSlip }) {
                 />
               </div>
               <div className="text-sm">
-                <label htmlFor="location" className="block font-medium mb-1">
-                  Location
+                <label htmlFor="status" className="block font-medium mb-1">
+                  Status
                 </label>
                 <input
-                  id="location"
-                  name="location"
+                  id="status"
+                  name="status"
                   type="text"
-                  value={formData.location}
+                  value={formData.status}
                   disabled
-                  className="w-full border rounded px-2 py-1 bg-gray-200"
+                  onChange={handleChange} // Editable
+                  className="w-full border rounded px-2 py-1  bg-gray-200"
                 />
               </div>
               <div className="text-sm">
@@ -316,7 +329,7 @@ export default function EditJobSlip({ jobSlip }) {
                   id="completedAt"
                   name="completedAt"
                   type="text"
-                  value={formData.completedAt}
+                  value={`${new Date(formData.completed_At).toLocaleDateString('en-GB')}`}
                   disabled
                   className="w-full border rounded px-2 py-1 bg-gray-200"
                 />
@@ -409,7 +422,6 @@ export default function EditJobSlip({ jobSlip }) {
   );
 }
 
-// Fetch the job slip data for the specific ID
 export async function getServerSideProps({ params }) {
   const { id } = params;
 
@@ -420,10 +432,37 @@ export async function getServerSideProps({ params }) {
   if (!jobSlip) {
     return { notFound: true }; // Will trigger 404 if job slip not found
   }
+  console.log("jobslip",jobSlip)
+
+  // Ensure IDs are integers
+  const attendedById = parseInt(jobSlip.attendedBy);
+  const departmentId = parseInt(jobSlip.department);
+
+  // Fetch AttendedBy User Name
+  const attendedByUser = attendedById
+    ? await prisma.user.findUnique({
+        where: { id: attendedById },
+        select: { name: true }, // Fetch only the name
+      })
+    : null;
+
+  // Fetch Department Name
+  const department = departmentId
+    ? await prisma.department.findUnique({
+        where: { id: departmentId },
+        select: { name: true }, // Fetch only the name
+      })
+    : null;
 
   return {
     props: {
-      jobSlip: JSON.parse(JSON.stringify(jobSlip)),
+      jobSlip: {
+        ...JSON.parse(JSON.stringify(jobSlip)),
+        attendedBy: attendedByUser ? attendedByUser.name : "Unknown", // Add User Name
+        department: department ? department.name : "Unknown", // Add Department Name
+      },
     },
   };
 }
+
+

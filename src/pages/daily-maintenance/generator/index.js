@@ -264,8 +264,8 @@ export default function GeneratorPage({ initialData, nextPage }) {
 
         {/* Filters */}
         <div className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <input
+           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+           {/* <input
               type="text"
               name="genSetNo"
               value={filters.genSetNo}
@@ -296,7 +296,7 @@ export default function GeneratorPage({ initialData, nextPage }) {
               onChange={handleFilterChange}
               placeholder="Engineer Name"
               className="px-4 py-2 bg-gray-700 text-white rounded-md focus:ring focus:ring-blue-300"
-            />
+            /> */}
             <input
               type="date"
               name="date"

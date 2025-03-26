@@ -16,6 +16,7 @@ const AddBoilerForm = () => {
   const [supervisors, setSupervisors] = useState([]);
   const router = useRouter();
   const [userId, setUserId] = useState(null); // Store the user's ID
+  const [userRole, setUserRole] = useState(null); // Store the user's role
   // Fetch the current user's ID
   useEffect(() => {
     const fetchUser = async () => {
@@ -24,6 +25,7 @@ const AddBoilerForm = () => {
         const data = await res.json();
         if (data?.user?.id) {
           setUserId(data.user.id); // Set the user ID
+          setUserRole(data.user.role); // Set the user role
         } else {
           console.error('Failed to fetch user session');
         }
@@ -76,10 +78,18 @@ const AddBoilerForm = () => {
       ...prevData,
       TimeHr: [
         ...prevData.TimeHr,
-        { HotWaterIn: '', HotWaterOut: '', ExhaustTemp: '', FurnacePressure: '', assistantSupervisor: '' },
+        { 
+          time: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), // Default to current time
+          HotWaterIn: '', 
+          HotWaterOut: '', 
+          ExhaustTemp: '', 
+          FurnacePressure: '', 
+          assistantSupervisor: '' 
+        },
       ],
     }));
   };
+  
 
   const handleDeleteTimeHr = (index) => {
     const updatedTimeHr = formData.TimeHr.filter((_, i) => i !== index);
@@ -88,11 +98,25 @@ const AddBoilerForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+  
+    // Ensure each TimeHr entry has a valid time before sending
+    const updatedTimeHr = formData.TimeHr.map((entry) => ({
+      ...entry,
+      time: entry.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    }));
+  
+    const updatedFormData = {
+      ...formData,
+      TimeHr: updatedTimeHr,
+      createdById: userId, // Ensure createdById is included
+    };
+  
     const response = await fetch('/api/hot-water-boiler', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, createdById: userId }), // Include createdById
+      body: JSON.stringify(updatedFormData),
     });
+  
     if (response.ok) {
       alert('Boiler added!');
       router.push(`/daily-maintenance/hot-water-boiler`);
@@ -100,6 +124,7 @@ const AddBoilerForm = () => {
       alert('Failed to add boiler');
     }
   };
+  
 
   return (
     <Layout>
@@ -173,6 +198,21 @@ const AddBoilerForm = () => {
             <h3 className="text-white mb-2">Time Hours</h3>
             {formData.TimeHr.map((entry, index) => (
               <div key={index} className="grid grid-cols-6 gap-2 mb-2">
+                {/* Time Field (Editable only for manager and super_admin) */}
+                <input
+                  type="time"
+                  name="time"
+                  value={entry.time || new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                  onChange={(e) => {
+                    if (userRole === 'manager' || userRole === 'super_admin') {
+                      handleTimeHrChange(e, index);
+                    }
+                  }}
+                  className="px-3 py-2 rounded-md bg-gray-700 text-white"
+                  readOnly={userRole !== 'manager' && userRole !== 'super_admin'}
+                />
+
+                {/* Other Inputs */}
                 {['HotWaterIn', 'HotWaterOut', 'ExhaustTemp', 'FurnacePressure', 'assistantSupervisor'].map((field) => (
                   <input
                     key={field}
@@ -184,6 +224,8 @@ const AddBoilerForm = () => {
                     className="px-3 py-2 rounded-md bg-gray-700 text-white"
                   />
                 ))}
+
+                {/* Delete Button */}
                 <button
                   type="button"
                   onClick={() => handleDeleteTimeHr(index)}
