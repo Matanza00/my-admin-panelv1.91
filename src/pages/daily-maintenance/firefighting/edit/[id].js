@@ -84,7 +84,7 @@ const EditFireFighting = () => {
           <InfoItem label="Date" value={new Date(formData.date).toLocaleDateString('en-GB')} />
 
           <div className="flex flex-col">
-            <label className="font-medium text-gray-700">Firefighter Name:</label>
+            <label className="font-medium text-gray-700">Technician Name:</label>
             <select
               name="firefighterName"
               value={formData.firefighterName}
@@ -92,7 +92,7 @@ const EditFireFighting = () => {
               required
               className="mt-2 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="">Select Firefighter</option>
+              <option value="">Select Technician</option>
               {firefighters.map((firefighter) => (
                 <option key={firefighter.id} value={firefighter.name}>
                   {firefighter.name}
