@@ -109,7 +109,7 @@ export default function FleetDashboard({ initialVehicles }) {
 
   return (
     <Layout>
-      <div className="min-h-screen flex flex-col items-center bg-gray-100">
+      <div className="min-h-screen flex flex-col items-center bg-gray-100 p-2">
         <div className="p-6 bg-white shadow-lg rounded-xl flex-grow w-full max-w-6xl hover:shadow-2xl transition">
           
           <h1 className="text-3xl font-semibold text-gray-800 mb-6 text-center flex items-center gap-2">
@@ -117,7 +117,7 @@ export default function FleetDashboard({ initialVehicles }) {
           </h1>
 
           {/* Dashboard Grid */}
-          <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div className="p-6 bg-blue-500 text-white rounded-lg flex flex-col items-center justify-center">
               <Users size={36} className="mb-2" />
               <h2 className="text-xl font-bold">Total Drivers</h2>
@@ -132,7 +132,7 @@ export default function FleetDashboard({ initialVehicles }) {
 
             <div className="p-6 bg-orange-400 text-white rounded-lg flex flex-col items-center justify-center">
               <CheckCircle size={36} className="mb-2" />
-              <h2 className="text-xl font-bold">Assigned Cars</h2>
+              <h2 className="text-xl font-bold">Assigned Bookings</h2>
               <p className="text-3xl font-semibold">{stats.totalBookings}</p>
             </div>
           </div>
@@ -140,7 +140,7 @@ export default function FleetDashboard({ initialVehicles }) {
           
 
           {/* Booking Analytics Row */}
-<div className="grid grid-cols-3 gap-6 mb-8 mt-8">
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 mt-8">
 
 {/* Most Booked Cars */}
 <div className="p-6 bg-white shadow-xl rounded-2xl border border-gray-300 backdrop-blur-lg 
@@ -234,7 +234,7 @@ transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:bg-gray-50
 </div>
 
 {/* Map and Transactions Row */}
-<div className="grid grid-cols-3 gap-6 mb-8 mt-8">
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 mt-8">
 
 {/* Recent Transactions */}
 <div className="p-6 bg-white shadow-xl rounded-2xl border border-gray-300 backdrop-blur-lg 

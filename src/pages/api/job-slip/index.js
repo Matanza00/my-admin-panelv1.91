@@ -90,17 +90,29 @@ export default async function handler(req, res) {
     // ✅ Step 3: Fetch `attendedBy` name and `department` name for each job slip
     const jobSlipsWithDetails = await Promise.all(
       jobSlips.map(async (jobSlip) => {
-        let attendedByName = "N/A";
         let departmentName = "N/A";
+        let attendedByName = "N/A";
 
-        // Fetch Attended By User Name
-        if (jobSlip.attendedBy) {
-          const attendedUser = await prisma.user.findUnique({
-            where: { id: Number(jobSlip.attendedBy) },
-            select: { name: true },
-          });
-          if (attendedUser) attendedByName = attendedUser.name;
+        if (jobSlip.attendedBy && !isNaN(Number(jobSlip.attendedBy))) {
+          try {
+            const attendedUser = await prisma.user.findUnique({
+              where: {
+                id: Number(jobSlip.attendedBy),
+              },
+              select: {
+                name: true,
+              },
+            });
+        
+            if (attendedUser) {
+              attendedByName = attendedUser.name;
+            }
+          } catch (err) {
+            console.error("Failed to fetch attendedBy user:", err.message);
+          }
         }
+        
+
 
         // Fetch Department Name
         if (jobSlip.department) {

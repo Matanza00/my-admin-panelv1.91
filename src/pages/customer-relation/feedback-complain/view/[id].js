@@ -134,13 +134,7 @@ const handleDepartmentChange = async (e) => {
 
   const handleAddJobSlip = async () => {
     try {
-      const token = session?.user?.accessToken;
-
-    if (!token) {
-      // Show warning if user is not logged in or token is expired
-      alert("You are not logged in. Please log in to submit the job slip.");
-      return;
-    }
+     
       if (!formData || !complainData) {
         console.error("formData or complainData is missing:", { formData, complainData });
         return;

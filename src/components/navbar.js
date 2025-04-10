@@ -102,6 +102,11 @@ export default function Navbar() {
 
   return (
     <nav className="flex items-center justify-between p-4 bg-gray-900 text-white sticky top-0 z-10">
+      {status !== 'authenticated' && (
+      <div className="absolute top-full left-0 right-0 bg-red-600 text-white text-center py-2 z-20 shadow-md animate-pulse">
+        ⚠️ You are not logged in or your session has expired. Please log in again.
+      </div>
+    )}
       <div></div>
       <div className="flex items-center space-x-4">
         {/* Notification Icon with Count */}
