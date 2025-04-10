@@ -40,7 +40,7 @@ const ViewFireFighting = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <InfoItem label="Date" value={new Date(firefightingRecord.date).toLocaleDateString('en-GB')} />
-          <InfoItem label="Firefighter Name" value={firefightingRecord.firefighterName} />
+          <InfoItem label="Technician Name" value={firefightingRecord.firefighterName} />
         </div>
 
         {/* Status Section */}

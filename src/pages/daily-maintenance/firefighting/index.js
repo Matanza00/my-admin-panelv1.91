@@ -221,7 +221,7 @@ export default function FirefightingPage({ initialData, nextPage, type }) {
           firefighterName,
           new Date(date).toLocaleDateString(),
           formatStatusKey(statusKey),
-          statusValue ? '✅ Working' : '❌ Not Working',
+          statusValue ? 'Working' : 'Not Working',
           '', // Empty remarks
         ]);
       });
