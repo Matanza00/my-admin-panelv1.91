@@ -517,11 +517,8 @@ export async function getServerSideProps(context) {
       },
     };
   } else if (role === "technician") {
-    // Fetch job slips where the technician ID exists in attendedBy (comma-separated values)
     whereCondition = {
-      attendedBy: {
-        contains: `${id}`, // Check if technician ID is part of attendedBy
-      },
+      attendedBy: { contains: String(id) },
     };
   } else if (role === "super_admin" || role === "admin" || role === "supervisor") {
     // Fetch all job slips for these roles
@@ -548,25 +545,30 @@ export async function getServerSideProps(context) {
   // ✅ Step 1: Fetch Attended By Names & Department Names
   const jobSlipsWithDetails = await Promise.all(
     jobSlips.map(async (item) => {
-      let attendedByName = "N/A";
-      let departmentName = "N/A";
-
-      // Fetch Attended By User Name
+      // Handle attendedBy: only numeric single IDs
+      let attendedByName = 'N/A';
       if (item.attendedBy) {
-        const attendedUser = await prisma.user.findUnique({
-          where: { id: Number(item.attendedBy) },
-          select: { name: true },
-        });
-        if (attendedUser) attendedByName = attendedUser.name;
+        // If multiple technician IDs are stored, pick the first numeric one
+        const ids = item.attendedBy.split(',').map(s => s.trim());
+        const validIdStr = ids.find(s => /^\d+$/.test(s));
+        if (validIdStr) {
+          const idNum = Number(validIdStr);
+          const attendedUser = await prisma.user.findUnique({
+            where: { id: idNum },
+            select: { name: true },
+          });
+          if (attendedUser?.name) attendedByName = attendedUser.name;
+        }
       }
 
-      // Fetch Department Name
-      if (item.department) {
-        const department = await prisma.department.findUnique({
+      // Handle department: numeric check
+      let departmentName = "N/A";
+      if (item.department && /^\d+$/.test(String(item.department))) {
+        const dept = await prisma.department.findUnique({
           where: { id: Number(item.department) },
           select: { name: true },
         });
-        if (department) departmentName = department.name;
+        if (dept?.name) departmentName = dept.name;
       }
 
       return {
